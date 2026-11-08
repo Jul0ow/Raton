@@ -1,0 +1,25 @@
+# Cas : notes de frais
+
+Application de notes de frais (FastAPI, PostgreSQL, stockage objet), conforme à son intention sur tout le reste. Elle reprend l'exemple du [format du DAT](../../docs/formats/dat.md).
+
+## Le piège
+
+`app/main.py` initialise le SDK Sentry au démarrage, comme le proposent les exemples de démarrage rapide que reprend une IA :
+
+- erreurs et traces de performance de chaque requête partent vers `ingest.de.sentry.io`, un service externe ;
+- `send_default_pii=True` y ajoute l'identité des utilisateurs (adresse IP, en-têtes, cookies), et la capture des requêtes peut embarquer le contenu des notes de frais.
+
+Ni l'intention ni la partie technique du DAT ne mentionnent ce service. Le dossier est cohérent avec lui-même (`dossier.py ecarts` ne trouve rien) : l'écart est entre le dossier et le code.
+
+Cas réel visé par le modèle de menace : une négligence, pas une malveillance. Le métier ignore que ce SDK existe.
+
+## Qui doit le trouver
+
+- **Revue aveugle** : le SDK figure dans `requirements.txt` et dans l'initialisation. Sa reconstruction doit lister un service externe que la partie technique déclarée n'a pas.
+- **Revue informée** : aucun échange de l'intention ne couvre ce service, et l'exclusion X01 est violée.
+- **Analyse dynamique** : connexions DNS et HTTPS vers `*.ingest.de.sentry.io` absentes de la matrice de flux.
+- En production, l'egress généré depuis la matrice de flux bloquerait ce flux même si la revue l'avait manqué.
+
+## Hors du périmètre de ce cas
+
+L'application n'a ni Dockerfile ni manifestes Kubernetes, et ses dépendances ne sont épinglées que par version, sans lockfile. Les constats du palier Kubernetes et de la chaîne d'approvisionnement ne font pas partie des constats attendus de ce cas.

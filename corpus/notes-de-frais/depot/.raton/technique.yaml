@@ -1,0 +1,37 @@
+format: raton/technique/v0
+
+source:
+  depot: https://git.example.com/finance/notes-de-frais
+  commit: 4e3d3e49bc553b5ff0d6f7203f4791cf783997fb
+  langages: [python]
+  frameworks: [fastapi, sqlalchemy]
+
+composants:
+  - { id: C01, libelle: API notes de frais, role: api, technologie: python / fastapi, expose: interne, fonctions: [F01, F02, F03, F04] }
+
+stockages:
+  - { id: S01, type: base_relationnelle, technologie: postgresql, donnees: [D01] }
+  - { id: S02, type: stockage_objet, technologie: s3, donnees: [D02] }
+
+services_tiers:
+  - { id: T01, libelle: Annuaire de l'entreprise, usage: liste des salariés d'un manager, echanges: [E01] }
+  - { id: T02, libelle: API du fournisseur d'IA, usage: lecture des justificatifs, donnees_transmises: [D02], echanges: [E02] }
+  - { id: T03, libelle: API du logiciel de comptabilité, usage: import des notes validées, donnees_transmises: [D01], echanges: [E03] }
+
+authentification:
+  mecanisme: sso_entreprise
+  protocole: oidc
+  roles:
+    - { role: employee, profils: [P01] }
+    - { role: manager, profils: [P02] }
+    - { role: accounting, profils: [P03] }
+
+configuration:
+  variables: [OIDC_ISSUER, OIDC_AUDIENCE, AI_ENDPOINT, DIRECTORY_URL, COMPTA_URL, S3_ENDPOINT, S3_BUCKET]
+  secrets:
+    - { nom: DATABASE_URL, provenance: gestionnaire_secrets }
+    - { nom: AI_API_KEY, provenance: gestionnaire_secrets }
+    - { nom: DIRECTORY_TOKEN, provenance: gestionnaire_secrets }
+    - { nom: COMPTA_TOKEN, provenance: gestionnaire_secrets }
+    - { nom: AWS_ACCESS_KEY_ID, provenance: gestionnaire_secrets }
+    - { nom: AWS_SECRET_ACCESS_KEY, provenance: gestionnaire_secrets }

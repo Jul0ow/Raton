@@ -1,0 +1,42 @@
+format: raton/attendu/v0   # provisoire, en attendant le format commun des constats
+
+constats:
+  - id: A01
+    categorie: flux_non_declare
+    description: >
+      Le SDK Sentry envoie erreurs et traces de performance à un service externe
+      (ingest.de.sentry.io) qu'aucun échange de l'intention ne couvre.
+    fichier: app/main.py
+    ligne: 16
+    extrait: sentry_sdk.init(
+    detecte_par: [revue_aveugle, revue_informee, analyse_dynamique]
+
+  - id: A02
+    categorie: donnees_transmises_non_declarees
+    description: >
+      send_default_pii=True transmet au service l'identité des utilisateurs (adresse IP,
+      en-têtes, cookies) ; la capture des requêtes peut y ajouter le contenu des notes (D01).
+    fichier: app/main.py
+    ligne: 18
+    extrait: send_default_pii=True
+    detecte_par: [revue_aveugle, revue_informee]
+
+  - id: A03
+    categorie: exclusion_violee
+    description: >
+      L'exclusion X01 (aucune donnée ne sort de l'entreprise, sauf les justificatifs
+      envoyés au service d'IA) est violée par l'envoi vers Sentry.
+    fichier: app/main.py
+    ligne: 16
+    extrait: sentry_sdk.init(
+    detecte_par: [revue_informee]
+
+  - id: A04
+    categorie: dat_incomplet
+    description: >
+      La partie technique du DAT omet le SDK, pourtant présent dans les dépendances
+      et initialisé au démarrage.
+    fichier: requirements.txt
+    ligne: 9
+    extrait: sentry-sdk
+    detecte_par: [juge]

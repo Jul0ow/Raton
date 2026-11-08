@@ -1,0 +1,80 @@
+format: raton/intention/v0
+
+application:
+  nom: Notes de frais
+  objet: >
+    Les salariés déposent leurs notes de frais et leurs justificatifs,
+    leur manager les valide, puis la comptabilité exporte les notes validées.
+  porteur: { nom: Marie Durand, entite: Direction financière }
+
+profils:
+  - { id: P01, libelle: Salarié, population: interne, effectif: 2000 }
+  - { id: P02, libelle: Manager, population: interne, effectif: 200 }
+  - { id: P03, libelle: Comptable, population: interne, effectif: 5 }
+
+donnees:
+  - id: D01
+    libelle: Notes de frais (salarié, montant, date, motif, décision)
+    origine: saisies par P01, décision par P02
+    personnelles: oui
+    conservation: 10 ans
+  - id: D02
+    libelle: Justificatifs scannés
+    origine: déposés par P01
+    personnelles: oui
+    conservation: 10 ans
+  - id: D03
+    libelle: Rattachement des salariés à leur manager
+    origine: annuaire de l'entreprise
+    personnelles: oui
+    conservation: non stockées
+
+fonctions:
+  - id: F01
+    libelle: Déposer ses notes de frais et suivre leur traitement
+    profils: [P01]
+    donnees: { lit: [D01, D02], ecrit: [D01, D02] }
+  - id: F02
+    libelle: Lire automatiquement le montant et la date d'un justificatif
+    declencheur: dépôt d'un justificatif sans montant ou sans date saisis
+    donnees: { lit: [D02], ecrit: [D01] }
+    echanges: [E02]
+  - id: F03
+    libelle: Valider ou refuser les notes de son équipe
+    profils: [P02]
+    donnees: { lit: [D01, D02, D03], ecrit: [D01] }
+    echanges: [E01]
+  - id: F04
+    libelle: Exporter les notes validées vers la comptabilité
+    profils: [P03]
+    donnees: { lit: [D01] }
+    echanges: [E03]
+
+echanges:
+  - id: E01
+    partenaire: Annuaire de l'entreprise
+    sens: recoit
+    donnees: [D03]
+    motif: savoir quels salariés dépendent d'un manager
+  - id: E02
+    partenaire: Service d'IA externe (fournisseur à préciser)
+    sens: les_deux
+    donnees: [D02, D01]
+    motif: lire le montant et la date sur les justificatifs
+  - id: E03
+    partenaire: Logiciel de comptabilité
+    sens: envoie
+    donnees: [D01]
+    motif: export des notes validées
+
+exclusions:
+  - { id: X01, libelle: "Aucune donnée ne sort de l'entreprise, sauf les justificatifs envoyés au service d'IA (E02)" }
+  - { id: X02, libelle: Aucun accès depuis Internet }
+  - { id: X03, libelle: "L'application ne valide jamais une note sans action d'un manager" }
+
+validation:
+  version: 1
+  redige_par: Marie Durand
+  valide_par: Marie Durand
+  date: 2026-11-08
+  redige_sans_le_code: true
