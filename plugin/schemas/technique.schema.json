@@ -1,0 +1,153 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:raton:schema:technique:v0",
+  "title": "DAT, partie technique",
+  "description": "L'application telle qu'elle est construite, à un commit donné. Les références P, F, D et E renvoient à la partie intention ; le relecteur aveugle les omet.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "source", "composants", "stockages", "services_tiers", "authentification", "configuration"],
+  "properties": {
+    "format": { "const": "raton/technique/v0" },
+
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["depot", "commit", "langages"],
+      "properties": {
+        "depot": { "$ref": "#/$defs/texte_court" },
+        "commit": { "type": "string", "pattern": "^[0-9a-f]{40}$", "description": "SHA complet du commit décrit." },
+        "langages": { "$ref": "#/$defs/liste_noms" },
+        "frameworks": { "$ref": "#/$defs/liste_noms" }
+      }
+    },
+
+    "composants": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "libelle", "role", "technologie", "expose"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^C[0-9]{2}$" },
+          "libelle": { "$ref": "#/$defs/texte_court" },
+          "role": { "enum": ["web", "api", "worker", "tache_planifiee", "autre"] },
+          "technologie": { "$ref": "#/$defs/texte_court" },
+          "expose": {
+            "enum": ["internet", "interne", "aucune"],
+            "description": "À qui le composant est accessible."
+          },
+          "fonctions": { "$ref": "#/$defs/refs_fonctions" }
+        }
+      }
+    },
+
+    "stockages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "type", "technologie"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^S[0-9]{2}$" },
+          "type": { "enum": ["base_relationnelle", "base_documents", "cache", "stockage_objet", "fichiers", "file_messages", "autre"] },
+          "technologie": { "$ref": "#/$defs/texte_court" },
+          "donnees": { "$ref": "#/$defs/refs_donnees" }
+        }
+      }
+    },
+
+    "services_tiers": {
+      "type": "array",
+      "description": "API, SDK et services externes appelés par le code, y compris télémétrie, analytics et remontée d'erreurs.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "libelle", "usage"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^T[0-9]{2}$" },
+          "libelle": { "$ref": "#/$defs/texte_court" },
+          "usage": { "$ref": "#/$defs/texte_court" },
+          "donnees_transmises": { "$ref": "#/$defs/refs_donnees" },
+          "echanges": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": { "type": "string", "pattern": "^E[0-9]{2}$" }
+          }
+        }
+      }
+    },
+
+    "authentification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mecanisme"],
+      "properties": {
+        "mecanisme": { "enum": ["sso_entreprise", "maison", "aucune", "autre"] },
+        "protocole": { "enum": ["oidc", "saml", "autre"] },
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["role"],
+            "properties": {
+              "role": { "$ref": "#/$defs/texte_court", "description": "Nom du rôle tel qu'il apparaît dans le code." },
+              "profils": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": { "type": "string", "pattern": "^P[0-9]{2}$" }
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "configuration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["variables", "secrets"],
+      "properties": {
+        "variables": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/nom_variable" }
+        },
+        "secrets": {
+          "type": "array",
+          "description": "Noms des secrets attendus, jamais leur valeur.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["nom", "provenance"],
+            "properties": {
+              "nom": { "$ref": "#/$defs/nom_variable" },
+              "provenance": { "enum": ["gestionnaire_secrets", "variable_environnement", "fichier_monte", "autre"] }
+            }
+          }
+        }
+      }
+    }
+  },
+
+  "$defs": {
+    "texte_court": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "liste_noms": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9.+_-]*$" }
+    },
+    "nom_variable": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+    "refs_fonctions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^F[0-9]{2}$" }
+    },
+    "refs_donnees": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^D[0-9]{2}$" }
+    }
+  }
+}

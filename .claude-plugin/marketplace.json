@@ -1,0 +1,16 @@
+{
+  "name": "raton",
+  "owner": {
+    "name": "Raton"
+  },
+  "metadata": {
+    "description": "Marketplace de développement du plugin Raton"
+  },
+  "plugins": [
+    {
+      "name": "raton",
+      "source": "./plugin",
+      "description": "Relecture de code non fiable avant mise en production"
+    }
+  ]
+}
