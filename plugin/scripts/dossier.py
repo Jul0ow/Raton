@@ -20,6 +20,7 @@ import sys
 from pathlib import Path
 
 from raton_formats import ErreurFormat, charger, doublons, erreurs_schema
+from raton_formats import md_inerte as _cell
 from raton_formats import ids as _ids
 
 FORMATS = ("raton/intention/v0", "raton/technique/v0")
@@ -175,15 +176,6 @@ def ecarts(intention, technique):
 
 
 # --- Rendu lisible -----------------------------------------------------------
-
-
-_MD_SPECIAUX = str.maketrans({c: "\\" + c for c in "\\`*_[]<>|#"})
-
-
-def _cell(texte):
-    """Texte de l'auteur rendu inerte : pas de lien, d'image, de balise ni de
-    mise en forme qui changerait ce que le valideur croit lire."""
-    return " ".join(str(texte).split()).translate(_MD_SPECIAUX)
 
 
 def rendre_intention(doc):

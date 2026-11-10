@@ -1,0 +1,176 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:raton:schema:qualification:v0",
+  "title": "Fiche de qualification",
+  "description": "Classe une application : exposition, utilisateurs, données personnelles, besoins DICP. Renseignée par le métier, validée par l'équipe infra. Le palier d'exigence et les contrôles obligatoires en découlent par une règle déterministe (qualification.py calculer).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "application", "exposition", "utilisateurs", "donnees_personnelles", "dicp"],
+  "dependentRequired": { "validation": ["exigences"] },
+  "properties": {
+    "format": { "const": "raton/qualification/v0" },
+
+    "application": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "nom", "objet", "porteur"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "maxLength": 64,
+          "description": "Identifiant court et stable de l'application ; nomme son répertoire dans le dépôt de l'équipe infra."
+        },
+        "nom": { "$ref": "#/$defs/texte_court" },
+        "objet": { "$ref": "#/$defs/texte_long" },
+        "porteur": { "$ref": "#/$defs/personne" },
+        "depot": { "$ref": "#/$defs/texte_court", "description": "Adresse du dépôt de l'application." }
+      }
+    },
+
+    "exposition": {
+      "enum": ["interne", "internet"],
+      "description": "internet : joignable depuis Internet sans passer par le réseau de l'entreprise, même derrière une authentification."
+    },
+
+    "utilisateurs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["populations", "effectif"],
+      "properties": {
+        "populations": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["interne", "externe", "public"] },
+          "description": "interne : salariés ; externe : personnes extérieures identifiées (clients, fournisseurs, partenaires) ; public : n'importe qui, sans compte nominatif."
+        },
+        "effectif": { "type": "integer", "minimum": 1, "description": "Nombre d'utilisateurs, ordre de grandeur." }
+      }
+    },
+
+    "donnees_personnelles": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["niveau"],
+      "properties": {
+        "niveau": {
+          "enum": ["non", "oui", "sensibles"],
+          "description": "non : aucune donnée personnelle hors de l'identité des utilisateurs fournie par l'authentification ; sensibles : catégories particulières (art. 9 du RGPD) ou infractions (art. 10)."
+        },
+        "personnes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/texte_court" },
+          "description": "Catégories de personnes concernées : salariés, clients, candidats…"
+        },
+        "volume": { "type": "integer", "minimum": 1, "description": "Nombre de personnes concernées, ordre de grandeur." },
+        "registre": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["statut"],
+          "properties": {
+            "statut": {
+              "enum": ["inscrit", "a_inscrire", "a_verifier"],
+              "description": "a_verifier : le métier ne sait pas ; interdit une fois la fiche validée."
+            },
+            "reference": { "$ref": "#/$defs/texte_court", "description": "Identifiant du traitement dans le registre RGPD." }
+          },
+          "if": { "properties": { "statut": { "const": "inscrit" } } },
+          "then": { "required": ["reference"] },
+          "else": { "not": { "required": ["reference"] } }
+        }
+      },
+      "if": { "properties": { "niveau": { "const": "non" } } },
+      "then": { "maxProperties": 1 },
+      "else": { "required": ["personnes", "volume", "registre"] }
+    },
+
+    "dicp": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["disponibilite", "integrite", "confidentialite", "preuve"],
+      "properties": {
+        "disponibilite": { "$ref": "#/$defs/besoin" },
+        "integrite": { "$ref": "#/$defs/besoin" },
+        "confidentialite": { "$ref": "#/$defs/besoin" },
+        "preuve": { "$ref": "#/$defs/besoin" }
+      }
+    },
+
+    "exigences": {
+      "description": "Résultat de qualification.py calculer, que l'équipe infra peut relever. Obligatoire dès que la fiche est validée.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["palier", "controles"],
+      "properties": {
+        "palier": { "type": "integer", "minimum": 1, "maximum": 3 },
+        "controles": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/controle" }
+        },
+        "justification": {
+          "$ref": "#/$defs/texte_long",
+          "description": "Obligatoire quand le palier ou les contrôles dépassent le minimum calculé."
+        }
+      }
+    },
+
+    "validation": {
+      "description": "Absente tant que l'équipe infra n'a pas validé : la fiche est alors un brouillon, inutilisable par le pipeline.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "renseigne_par", "valide_par", "date"],
+      "properties": {
+        "version": { "type": "integer", "minimum": 1 },
+        "renseigne_par": { "$ref": "#/$defs/personne", "description": "La personne du métier qui a répondu." },
+        "valide_par": { "$ref": "#/$defs/personne", "description": "Le membre de l'équipe infra qui valide." },
+        "date": { "$ref": "#/$defs/date" }
+      }
+    }
+  },
+
+  "$defs": {
+    "texte_court": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "texte_long": { "type": "string", "minLength": 1, "maxLength": 1000 },
+    "date": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+    "personne": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nom", "entite"],
+      "properties": {
+        "nom": { "$ref": "#/$defs/texte_court" },
+        "entite": { "$ref": "#/$defs/texte_court" }
+      }
+    },
+    "besoin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["niveau", "motif"],
+      "properties": {
+        "niveau": { "type": "integer", "minimum": 1, "maximum": 4 },
+        "motif": { "$ref": "#/$defs/texte_court", "description": "La réponse du métier à la question d'impact, en ses mots." }
+      }
+    },
+    "controle": {
+      "description": "Contrôles qu'une qualification peut exiger : sous-ensemble des contrôles des rapports.",
+      "enum": [
+        "dat",
+        "matrice_flux",
+        "exploitation",
+        "palier_kubernetes",
+        "chaine_approvisionnement",
+        "secrets",
+        "identite_acces",
+        "sast",
+        "revue_informee",
+        "juge",
+        "revue_aveugle",
+        "analyse_dynamique"
+      ]
+    }
+  }
+}

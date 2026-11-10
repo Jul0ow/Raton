@@ -20,6 +20,10 @@ Cas réel visé par le modèle de menace : une négligence, pas une malveillance
 - **Analyse dynamique** : connexions DNS et HTTPS vers `*.ingest.de.sentry.io` absentes de la matrice de flux.
 - En production, l'egress généré depuis la matrice de flux bloquerait ce flux même si la revue l'avait manqué.
 
+## Qualification
+
+La [fiche](qualification.yaml) classe l'application au palier 2 : données personnelles des salariés, intégrité, confidentialité et preuve de niveau 3, application interne. La revue aveugle et le juge sont donc obligatoires ; l'analyse dynamique ne l'est pas. Le piège reste ainsi à la portée des contrôles exigés.
+
 ## Hors du périmètre de ce cas
 
 L'application n'a ni Dockerfile ni manifestes Kubernetes, et ses dépendances ne sont épinglées que par version, sans lockfile. Les constats du palier Kubernetes et de la chaîne d'approvisionnement ne font pas partie des constats attendus de ce cas.

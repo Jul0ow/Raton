@@ -28,6 +28,7 @@ FORMATS = {
     "raton/technique/v0": "technique.schema.json",
     "raton/rapport/v0": "rapport.schema.json",
     "raton/attendu/v0": "attendu.schema.json",
+    "raton/qualification/v0": "qualification.schema.json",
 }
 TAILLE_MAX = 5_000_000  # octets
 
@@ -125,6 +126,21 @@ def erreurs_schema(doc, formats):
         for e in sorted(_validateur(format_).iter_errors(doc), key=lambda e: list(map(str, e.absolute_path)))
     ]
     return format_, erreurs
+
+
+# --- Rendu -------------------------------------------------------------------
+
+
+_MD_SPECIAUX = str.maketrans({c: "\\" + c for c in "\\`*_[]<>|#"})
+
+
+def md_inerte(texte):
+    """Texte de l'auteur rendu inerte en Markdown : pas de lien, d'image, de balise
+    ni de mise en forme qui changerait ce que le valideur croit lire."""
+    return " ".join(str(texte).split()).translate(_MD_SPECIAUX)
+
+
+# --- Identifiants -------------------------------------------------------------
 
 
 def ids(liste):

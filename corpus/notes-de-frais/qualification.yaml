@@ -1,0 +1,57 @@
+format: raton/qualification/v0
+
+application:
+  code: notes-de-frais
+  nom: Notes de frais
+  objet: >
+    Les salariés déposent leurs notes de frais et leurs justificatifs,
+    leur manager les valide, puis la comptabilité exporte les notes validées.
+  porteur: { nom: Marie Durand, entite: Direction financière }
+  depot: https://git.example.com/finance/notes-de-frais
+
+exposition: interne
+
+utilisateurs:
+  populations: [interne]
+  effectif: 2000
+
+donnees_personnelles:
+  niveau: oui
+  personnes: [salariés]
+  volume: 2000
+  registre: { statut: inscrit, reference: TRT-FIN-007 }
+
+dicp:
+  disponibilite:
+    niveau: 2
+    motif: un arrêt d'une journée retarde les remboursements, sans autre conséquence
+  integrite:
+    niveau: 3
+    motif: les montants validés sont remboursés aux salariés et exportés en comptabilité
+  confidentialite:
+    niveau: 3
+    motif: dépenses et justificatifs réservés au salarié, à son manager et à la comptabilité
+  preuve:
+    niveau: 3
+    motif: savoir qui a validé chaque note, pour les contrôles comptables et fiscaux
+
+exigences:
+  palier: 2
+  controles:
+    - dat
+    - matrice_flux
+    - exploitation
+    - palier_kubernetes
+    - chaine_approvisionnement
+    - secrets
+    - identite_acces
+    - sast
+    - revue_informee
+    - juge
+    - revue_aveugle
+
+validation:
+  version: 1
+  renseigne_par: { nom: Marie Durand, entite: Direction financière }
+  valide_par: { nom: Paul Lefèvre, entite: Équipe infra }
+  date: 2026-11-09

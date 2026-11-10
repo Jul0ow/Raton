@@ -9,13 +9,15 @@ Projet en démarrage : voir la [feuille de route](docs/feuille-de-route.md) et l
 | Chemin | Rôle |
 |---|---|
 | `plugin/` | le plugin Claude Code `raton` : skills, schémas, scripts |
+| `plugin/skills/qualification/` | skill de qualification : entretien avec le métier, validation par l'équipe infra |
 | `plugin/skills/dat/` | skill de co-rédaction du DAT |
-| `plugin/schemas/` | schémas communs : intention, technique, rapport de contrôle, constat, corrigé du corpus |
+| `plugin/schemas/` | schémas communs : qualification, intention, technique, rapport de contrôle, constat, corrigé du corpus |
+| `plugin/scripts/qualification.py` | validation de la fiche de qualification, calcul du palier et des contrôles obligatoires, rendu lisible |
 | `plugin/scripts/dossier.py` | validation, rendu lisible et écarts du dossier `.raton/` |
 | `plugin/scripts/constats.py` | validation des rapports, vérification des preuves dans le dépôt ; mesure de Raton sur le corpus (comparaison avec un corrigé) |
 | `plugin/references/` | guides partagés par les skills, dont la rédaction des constats |
 | `corpus/` | applications piégées et leurs corrigés, pour mesurer ce que Raton détecte ; jamais utilisé pour relire une vraie application |
-| `docs/` | feuille de route, [architecture](docs/architecture.md) et formats ([DAT](docs/formats/dat.md), [constats](docs/formats/constats.md)) |
+| `docs/` | feuille de route, [architecture](docs/architecture.md) et formats ([qualification](docs/formats/qualification.md), [DAT](docs/formats/dat.md), [constats](docs/formats/constats.md)) |
 | `tests/` | tests des schémas, du script et du corpus |
 
 ## Utiliser le plugin en local
@@ -27,7 +29,10 @@ Dans Claude Code :
 /plugin install raton@raton
 ```
 
-Le skill se lance avec `/raton:dat` (ou `/raton:dat intention`, `/raton:dat technique`) depuis le dépôt de l'application à décrire.
+Les skills se lancent ainsi :
+
+- `/raton:qualification` (ou `/raton:qualification renseigner`, `/raton:qualification valider <fiche>`), hors du dépôt de l'application : la fiche appartient à l'équipe infra ;
+- `/raton:dat` (ou `/raton:dat intention`, `/raton:dat technique`), depuis le dépôt de l'application à décrire.
 
 ## Tests
 
