@@ -57,6 +57,8 @@ Chaque constat en sort `verifie`, `refute` (une preuve est fausse) ou `non_verif
 
 ## Corrigés du corpus
 
+Le corrigé sert à mesurer Raton lui-même, pas à relire une application : voir la [boucle de mesure](../architecture.md#1-un-même-pipeline-deux-usages). Les mainteneurs de Raton l'écrivent en construisant le cas piégé.
+
 Un corrigé (`attendu.yaml`) liste les constats attendus d'un cas, au même format, avec en plus `detecte_par` : les contrôles censés trouver chacun d'eux.
 
 `constats.py comparer ATTENDU RAPPORT…` apparie les constats obtenus aux constats attendus. Un constat attendu est **détecté** si un constat obtenu a la même catégorie et au moins une preuve qui correspond :
