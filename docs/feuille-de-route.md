@@ -75,3 +75,4 @@ Qualification → dossier (DAT, matrice de flux, dossier d'exploitation) → con
 
 - 2026-11-08 : catalogue et principes validés. Développement dans un dépôt git avec Claude Code. Prochaine étape : le format du DAT.
 - 2026-11-08 : format du DAT validé ([docs/formats/dat.md](formats/dat.md)). Structure de plugin, schémas intention et technique, script `dossier.py`, skill DAT, premier cas du corpus (notes de frais : SDK de remontée d'erreurs non déclaré).
+- 2026-11-10 : proposition de format des constats, à valider ([docs/formats/constats.md](formats/constats.md)). Script `constats.py` : validation, vérification des preuves dans le dépôt, comparaison avec un corrigé du corpus.

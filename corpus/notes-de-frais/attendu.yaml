@@ -1,42 +1,67 @@
-format: raton/attendu/v0   # provisoire, en attendant le format commun des constats
+format: raton/attendu/v0
+cas: notes-de-frais
 
 constats:
   - id: A01
     categorie: flux_non_declare
+    severite: haute
+    confiance: elevee
+    titre: Le SDK Sentry envoie erreurs et traces à un service externe non déclaré
     description: >
-      Le SDK Sentry envoie erreurs et traces de performance à un service externe
-      (ingest.de.sentry.io) qu'aucun échange de l'intention ne couvre.
-    fichier: app/main.py
-    ligne: 16
-    extrait: sentry_sdk.init(
-    detecte_par: [revue_aveugle, revue_informee, analyse_dynamique]
+      Le SDK est initialisé au démarrage et envoie les erreurs et les traces de
+      performance de chaque requête à ingest.de.sentry.io. Aucun échange de
+      l'intention ne couvre ce service.
+    preuves:
+      - type: code
+        fichier: app/main.py
+        lignes: [16, 20]
+        extrait: |
+          sentry_sdk.init(
+              dsn="https://5c1f9e7a2d8b4e3f9a6c0d1e2f3a4b5c@o4508261749303296.ingest.de.sentry.io/4508261752711248",
+              send_default_pii=True,
+              traces_sample_rate=1.0,
+          )
+      - { type: dependance, ecosysteme: pypi, paquet: sentry-sdk, version: 2.74.0, fichier: requirements.txt, ligne: 9 }
+      - { type: reseau, destination: "*.ingest.de.sentry.io", port: 443, protocole: https, sens: sortant }
+    detecte_par: [revue_informee, juge, analyse_dynamique]
 
   - id: A02
-    categorie: donnees_transmises_non_declarees
+    categorie: donnees_non_declarees
+    severite: haute
+    confiance: elevee
+    titre: Identité des utilisateurs et contenu des requêtes transmis au service de suivi des erreurs
     description: >
-      send_default_pii=True transmet au service l'identité des utilisateurs (adresse IP,
-      en-têtes, cookies) ; la capture des requêtes peut y ajouter le contenu des notes (D01).
-    fichier: app/main.py
-    ligne: 18
-    extrait: send_default_pii=True
-    detecte_par: [revue_aveugle, revue_informee]
+      send_default_pii=True ajoute aux événements l'adresse IP, les en-têtes et les
+      cookies des utilisateurs ; la capture des requêtes peut y joindre le contenu
+      des notes de frais (D01). Aucun échange ne prévoit cette transmission.
+    cwe: CWE-359
+    preuves:
+      - { type: code, fichier: app/main.py, lignes: [18, 18], extrait: send_default_pii=True }
+      - { type: dossier, fichier: .raton/intention.yaml, element: D01 }
+    detecte_par: [revue_informee, juge]
 
   - id: A03
     categorie: exclusion_violee
+    severite: haute
+    confiance: elevee
+    titre: L'exclusion X01 est violée par l'envoi vers Sentry
     description: >
-      L'exclusion X01 (aucune donnée ne sort de l'entreprise, sauf les justificatifs
-      envoyés au service d'IA) est violée par l'envoi vers Sentry.
-    fichier: app/main.py
-    ligne: 16
-    extrait: sentry_sdk.init(
+      X01 promet qu'aucune donnée ne sort de l'entreprise, sauf les justificatifs
+      envoyés au service d'IA. L'envoi vers Sentry la contredit.
+    preuves:
+      - { type: dossier, fichier: .raton/intention.yaml, element: X01 }
+      - { type: code, fichier: app/main.py, lignes: [16, 20], extrait: "sentry_sdk.init(" }
     detecte_par: [revue_informee]
 
   - id: A04
-    categorie: dat_incomplet
+    categorie: dossier_inexact
+    severite: moyenne
+    confiance: elevee
+    titre: La partie technique du DAT omet le SDK Sentry
     description: >
-      La partie technique du DAT omet le SDK, pourtant présent dans les dépendances
-      et initialisé au démarrage.
-    fichier: requirements.txt
-    ligne: 9
-    extrait: sentry-sdk
+      Le SDK figure dans les dépendances et il est initialisé au démarrage, mais
+      services_tiers ne le mentionne pas.
+    preuves:
+      - { type: dossier, fichier: .raton/technique.yaml, champ: services_tiers }
+      - { type: dependance, ecosysteme: pypi, paquet: sentry-sdk, fichier: requirements.txt, ligne: 9 }
     detecte_par: [juge]

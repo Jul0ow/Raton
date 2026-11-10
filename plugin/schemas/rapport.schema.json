@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:raton:schema:rapport:v0",
+  "title": "Rapport de contrôle",
+  "description": "Résultat d'une exécution d'un contrôle sur un commit : ce qui a été vérifié, ce qui ne l'a pas été, et les constats.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "controle", "producteur", "commit", "date", "perimetre", "constats"],
+  "properties": {
+    "format": { "const": "raton/rapport/v0" },
+    "controle": { "$ref": "urn:raton:schema:constat:v0#/$defs/controle" },
+    "producteur": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "nom"],
+      "properties": {
+        "type": { "enum": ["outil", "agent", "humain"] },
+        "nom": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "version": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "modele": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "passe": { "type": "integer", "minimum": 1 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "type": { "const": "outil" } } },
+          "then": { "required": ["version"] }
+        },
+        {
+          "if": { "properties": { "type": { "const": "agent" } } },
+          "then": { "required": ["modele", "passe"] }
+        }
+      ]
+    },
+    "commit": { "$ref": "urn:raton:schema:constat:v0#/$defs/sha" },
+    "date": { "$ref": "urn:raton:schema:constat:v0#/$defs/date_heure" },
+    "perimetre": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verifie", "non_verifie"],
+      "properties": {
+        "verifie": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1, "maxLength": 200 }
+        },
+        "non_verifie": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["element", "motif"],
+            "properties": {
+              "element": { "type": "string", "minLength": 1, "maxLength": 200 },
+              "motif": { "type": "string", "minLength": 1, "maxLength": 200 }
+            }
+          }
+        }
+      }
+    },
+    "constats": {
+      "type": "array",
+      "items": { "$ref": "urn:raton:schema:constat:v0" }
+    }
+  }
+}

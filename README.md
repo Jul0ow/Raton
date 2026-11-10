@@ -10,10 +10,12 @@ Projet en démarrage : voir la [feuille de route](docs/feuille-de-route.md).
 |---|---|
 | `plugin/` | le plugin Claude Code `raton` : skills, schémas, scripts |
 | `plugin/skills/dat/` | skill de co-rédaction du DAT |
-| `plugin/schemas/` | schémas communs (intention, technique) |
+| `plugin/schemas/` | schémas communs : intention, technique, rapport de contrôle, constat, corrigé du corpus |
 | `plugin/scripts/dossier.py` | validation, rendu lisible et écarts du dossier `.raton/` |
+| `plugin/scripts/constats.py` | validation des rapports, vérification des preuves dans le dépôt, comparaison avec un corrigé |
+| `plugin/references/` | guides partagés par les skills, dont la rédaction des constats |
 | `corpus/` | applications piégées et constats attendus, pour mesurer la détection |
-| `docs/` | feuille de route et formats |
+| `docs/` | feuille de route et formats ([DAT](docs/formats/dat.md), [constats](docs/formats/constats.md)) |
 | `tests/` | tests des schémas, du script et du corpus |
 
 ## Utiliser le plugin en local

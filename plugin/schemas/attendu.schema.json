@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:raton:schema:attendu:v0",
+  "title": "Constats attendus d'un cas du corpus",
+  "description": "Corrigé d'un cas du corpus de test. Jamais montré aux relecteurs.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "cas", "constats"],
+  "properties": {
+    "format": { "const": "raton/attendu/v0" },
+    "cas": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+    "constats": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "urn:raton:schema:constat:v0#/$defs/champs",
+        "required": ["detecte_par"],
+        "properties": {
+          "detecte_par": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "description": "Contrôles qui doivent trouver ce constat.",
+            "items": { "$ref": "urn:raton:schema:constat:v0#/$defs/controle" }
+          }
+        },
+        "unevaluatedProperties": false
+      }
+    }
+  }
+}

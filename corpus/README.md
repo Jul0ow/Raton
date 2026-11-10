@@ -17,9 +17,13 @@ Règles :
 - Le relecteur aveugle ne voit pas non plus `depot/.raton/`.
 - Un cas porte un piège principal, pour que ce qui est détecté ou manqué soit attribuable. Le reste du code est volontairement propre.
 - Le code du corpus est piégé : il ne s'exécute que dans le bac à sable de l'analyse dynamique.
-- Chaque constat attendu cite un fichier, une ligne et un extrait de cette ligne. Les tests vérifient que l'extrait s'y trouve toujours.
+- `attendu.yaml` suit le [format des constats](../docs/formats/constats.md), avec pour chaque constat les contrôles censés le trouver (`detecte_par`). Les tests vérifient que ses preuves se retrouvent dans `depot/`.
 
-Le format de `attendu.yaml` est provisoire : il sera aligné sur le format commun des constats quand celui-ci sera défini.
+Mesurer des rapports sur un cas :
+
+```bash
+python3 plugin/scripts/constats.py comparer corpus/<cas>/attendu.yaml <rapport>…
+```
 
 ## Cas
 
