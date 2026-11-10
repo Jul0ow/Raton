@@ -198,10 +198,12 @@ flowchart LR
   DIFF -->|"rapports sur le delta"| RAP
 
   classDef humain fill:#d0ebff,stroke:#1971c2,color:#000
+  classDef fait fill:#d3f9d8,stroke:#2b8a3e,color:#000
   classDef propose fill:#fff3bf,stroke:#e67700,color:#000
   classDef afaire fill:#f8f9fa,stroke:#868e96,color:#000,stroke-dasharray:4 3
   class E,S humain
-  class QF,RAP propose
+  class RAP fait
+  class QF propose
   class DET,AG,DYN,SBOM,SYN,AVIS,DIFF afaire
 ```
 
@@ -268,7 +270,7 @@ Composants transverses :
 | Composant | État |
 |---|---|
 | Formats intention et technique | en place |
-| Format des constats (rapport, constat, corrigé) | proposé, à valider |
+| Format des constats (rapport, constat, corrigé) | en place |
 | Format de la qualification et règle de calcul du palier | proposé, à valider |
 | Formats de la matrice de flux, du dossier d'exploitation et de l'avis | à faire |
 | Scripts `dossier.py`, `constats.py` et `qualification.py` | en place |

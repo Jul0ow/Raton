@@ -1,6 +1,6 @@
 # Format des constats
 
-Statut : **proposition à valider** (2026-11-10).
+Statut : **validé** le 2026-11-10 (format v0).
 
 Chaque contrôle (outil, agent ou humain) produit un **rapport** : sur quel commit il a porté, ce qu'il a vérifié et ce qu'il n'a pas vérifié, et ses **constats**. La synthèse agrège les rapports pour rédiger l'avis ; le juge compare ceux de plusieurs passes.
 
@@ -156,7 +156,9 @@ La clé publique du DSN est masquée par `***` : ce n'est pas obligatoire hors `
 - **Import SARIF.** Semgrep, CodeQL, gitleaks, Trivy, Checkov et kubescape savent produire du SARIF. Un adaptateur le convertira en rapport Raton lors de la mise en place de l'outillage ; le format Raton reste le pivot, parce que SARIF ne porte ni périmètre, ni preuves de dossier, ni flux observés.
 - **Sortie du juge.** Le rapport consolidé du juge (accord entre passes, divergences escaladées) sera défini avec le skill 9.
 
-## Décisions à valider
+## Décisions
+
+Validées le 2026-11-10 :
 
 1. Un format pivot propre à Raton, alimenté par SARIF pour les outils, plutôt que SARIF partout.
 2. Un rapport par exécution de contrôle, avec un périmètre vérifié et non vérifié obligatoire.

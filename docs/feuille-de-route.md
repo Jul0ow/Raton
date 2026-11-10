@@ -79,3 +79,4 @@ Qualification → dossier (DAT, matrice de flux, dossier d'exploitation) → con
 - 2026-11-10 : proposition de format des constats, à valider ([docs/formats/constats.md](formats/constats.md)). Script `constats.py` : validation, vérification des preuves dans le dépôt, comparaison avec un corrigé du corpus.
 - 2026-11-10 : [architecture](architecture.md) schématisée : skills, données, parties prenantes. Rôles retenus pour l'instant : l'équipe infra mène la revue et exploite l'application, le RSSI signe l'avis.
 - 2026-11-10 : proposition de format de la qualification, à valider ([docs/formats/qualification.md](formats/qualification.md)) : trois paliers calculés par une règle publique, fiche validée et rangée par l'équipe infra hors du dépôt de l'application, recoupée avec l'intention. Script `qualification.py`, skill qualification, fiche du cas `notes-de-frais`.
+- 2026-11-10 : format des constats validé ([docs/formats/constats.md](formats/constats.md)).
