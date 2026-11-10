@@ -67,7 +67,7 @@ Qualification → dossier (DAT, matrice de flux, dossier d'exploitation) → con
 
 - Langages et frameworks des applis à relire (règles SAST à prévoir).
 - Briques du SI à imposer : SSO (OIDC ?), gestionnaire de secrets, registre d'images, CNI (NetworkPolicy standard ou CiliumNetworkPolicy ?).
-- Qui signe l'avis : RSSI, architecte, comité ? Hypothèse de travail retenue le 2026-11-10 : le RSSI signe, l'équipe infra mène la revue.
+- Qui signe l'avis : RSSI, architecte, comité ? Hypothèse de travail retenue le 2026-11-10 : le RSSI signe ; l'équipe infra mène la revue et exploite l'application.
 - Diffusion de la bibliothèque : plugin Claude Code via une marketplace interne ?
 - Diversité des relecteurs : même modèle sur plusieurs passes, ou modèles différents ?
 
@@ -76,4 +76,4 @@ Qualification → dossier (DAT, matrice de flux, dossier d'exploitation) → con
 - 2026-11-08 : catalogue et principes validés. Développement dans un dépôt git avec Claude Code. Prochaine étape : le format du DAT.
 - 2026-11-08 : format du DAT validé ([docs/formats/dat.md](formats/dat.md)). Structure de plugin, schémas intention et technique, script `dossier.py`, skill DAT, premier cas du corpus (notes de frais : SDK de remontée d'erreurs non déclaré).
 - 2026-11-10 : proposition de format des constats, à valider ([docs/formats/constats.md](formats/constats.md)). Script `constats.py` : validation, vérification des preuves dans le dépôt, comparaison avec un corrigé du corpus.
-- 2026-11-10 : [architecture](architecture.md) schématisée : skills, données, parties prenantes. Rôles retenus pour l'instant : l'équipe infra mène la revue, le RSSI signe l'avis.
+- 2026-11-10 : [architecture](architecture.md) schématisée : skills, données, parties prenantes. Rôles retenus pour l'instant : l'équipe infra mène la revue et exploite l'application, le RSSI signe l'avis.

@@ -57,7 +57,6 @@ sequenceDiagram
   participant R as Raton
   actor E as Équipe infra
   actor S as RSSI
-  actor X as Exploitation
 
   Note over M: Application produite avec une IA
   M->>R: Qualification (1) : répond aux questions
@@ -85,8 +84,8 @@ sequenceDiagram
   end
   E->>S: Avis argumenté
   S-->>E: Signe : Go, Go avec réserves ou No-Go
-  E->>X: Avis signé, NetworkPolicies, dossier d'exploitation
-  Note over X: Déploie. Tout flux non déclaré<br/>dans la matrice est bloqué.
+  E->>E: Déploie l'application
+  Note over E: NetworkPolicies issues<br/>de la matrice de flux.<br/>Tout flux non déclaré est bloqué.
 ```
 
 Trois moments humains structurent le parcours :
@@ -249,7 +248,7 @@ flowchart LR
 | 1 | Qualification | métier (répond), équipe infra (valide) | réponses, registre RGPD | fiche de qualification : palier, contrôles obligatoires | à faire |
 | 2 | DAT | métier (intention), auteur avec une IA (technique) | entretien ; code pour la partie technique | `intention.yaml`, `technique.yaml` | en place |
 | 3 | Matrice de flux | auteur | intention, code | `flux.yaml`, d'où sont générées les NetworkPolicies | à faire |
-| 4 | Dossier d'exploitation | auteur, exploitation | — | dossier d'exploitation | à faire |
+| 4 | Dossier d'exploitation | auteur, équipe infra | — | dossier d'exploitation | à faire |
 | 5 | Palier Kubernetes | outils | Dockerfile, manifestes, qualification | rapport | à faire |
 | 6 | Chaîne d'approvisionnement | outils | manifestes, lockfiles, images | SBOM, rapport | à faire |
 | 7 | Secrets | outils | code, historique git | rapport | à faire |
@@ -278,9 +277,8 @@ Rôles retenus le 2026-11-10, comme hypothèse de travail en attendant une déci
 | Rôle | Qui | Ce qu'il fait |
 |---|---|---|
 | Porteur métier | la personne ou l'équipe métier qui a produit l'application, souvent l'auteur du code | répond à la qualification, rédige et atteste l'intention, constitue le dossier, corrige les constats |
-| Équipe de revue | **l'équipe infra** | valide la qualification, lance le pipeline, tranche les divergences entre relecteurs, présente l'avis au signataire |
+| Équipe de revue et exploitation | **l'équipe infra** | valide la qualification, lance le pipeline, tranche les divergences entre relecteurs, présente l'avis au RSSI ; puis déploie l'application et applique les NetworkPolicies générées depuis la matrice de flux |
 | Signataire | **le RSSI** | signe l'avis (Go, Go avec réserves, No-Go) sur un commit précis |
-| Exploitation | à préciser, probablement l'équipe infra, qui opère Kubernetes | déploie, applique les NetworkPolicies générées depuis la matrice de flux |
 | Mainteneurs de Raton | l'équipe qui développe la bibliothèque | construisent les cas du corpus, écrivent leurs corrigés, mesurent Raton |
 
 La qualification est validée par l'équipe infra et pas seulement par le métier : l'auteur a intérêt à sous-évaluer la sensibilité de son application pour alléger les contrôles.
