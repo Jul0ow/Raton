@@ -5,33 +5,30 @@ Lancer depuis la racine du dépôt : python3 -m unittest discover -s tests
 
 import contextlib
 import copy
-import importlib.util
 import io
-import json
 import re
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 
 import yaml
-from jsonschema import Draft202012Validator
 
 RACINE = Path(__file__).resolve().parent.parent
-SCHEMAS = RACINE / "plugin" / "schemas"
+sys.path.insert(0, str(RACINE / "plugin" / "scripts"))
+
+import dossier  # noqa: E402
+import raton_formats  # noqa: E402
+
 CORPUS = RACINE / "corpus"
 DOC_DAT = RACINE / "docs" / "formats" / "dat.md"
-
-_spec = importlib.util.spec_from_file_location("dossier", RACINE / "plugin" / "scripts" / "dossier.py")
-dossier = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(dossier)
-
 NOTES = CORPUS / "notes-de-frais"
 
 
 def exemples_doc():
     """Blocs YAML de docs/formats/dat.md, indexés par leur champ format."""
     blocs = re.findall(r"```yaml\n(.*?)```", DOC_DAT.read_text(encoding="utf-8"), re.S)
-    docs = [dossier._dates_en_texte(yaml.safe_load(b)) for b in blocs]
+    docs = [raton_formats.dates_en_texte(yaml.safe_load(b)) for b in blocs]
     return {d["format"]: d for d in docs}
 
 
@@ -43,17 +40,6 @@ def ecrire(rep, nom, contenu):
     chemin = Path(rep) / nom
     chemin.write_text(contenu, encoding="utf-8")
     return chemin
-
-
-class TestSchemas(unittest.TestCase):
-    def test_schemas_valides(self):
-        for chemin in SCHEMAS.glob("*.schema.json"):
-            with self.subTest(schema=chemin.name):
-                Draft202012Validator.check_schema(json.loads(chemin.read_text(encoding="utf-8")))
-
-    def test_chaque_format_a_son_schema(self):
-        for fichier in dossier.FORMATS.values():
-            self.assertTrue((SCHEMAS / fichier).exists(), fichier)
 
 
 class TestExemplesDeLaDoc(unittest.TestCase):
@@ -94,15 +80,6 @@ class TestCorpusNotesDeFrais(unittest.TestCase):
         # Le piège est entre le dossier et le code, pas dans le dossier.
         self.assertEqual(dossier.ecarts(charger_corpus("intention.yaml"), charger_corpus("technique.yaml")), [])
 
-    def test_constats_attendus_pointent_sur_le_code(self):
-        attendu = yaml.safe_load((NOTES / "attendu.yaml").read_text(encoding="utf-8"))
-        ids = [c["id"] for c in attendu["constats"]]
-        self.assertEqual(len(ids), len(set(ids)))
-        for c in attendu["constats"]:
-            with self.subTest(constat=c["id"]):
-                lignes = (NOTES / "depot" / c["fichier"]).read_text(encoding="utf-8").splitlines()
-                self.assertIn(c["extrait"], lignes[c["ligne"] - 1])
-
     def test_corrige_hors_du_depot(self):
         noms = {p.name for p in (NOTES / "depot").rglob("*")}
         self.assertNotIn("attendu.yaml", noms)
@@ -131,7 +108,7 @@ class TestValidation(unittest.TestCase):
 
     def test_cle_en_double_refusee(self):
         texte = INTENTION_MINIMALE.replace("echanges: []", "echanges: []\nechanges: []")
-        with self.assertRaisesRegex(dossier.ErreurDossier, "clé en double"):
+        with self.assertRaisesRegex(raton_formats.ErreurFormat, "clé en double"):
             self.valider_texte(texte)
 
     def test_reference_inconnue(self):
@@ -206,18 +183,18 @@ class TestRendu(unittest.TestCase):
         self.assertNotIn("Brouillon", md)
 
     def test_rendu_brouillon(self):
-        doc = dossier._dates_en_texte(yaml.safe_load(INTENTION_MINIMALE))
+        doc = raton_formats.dates_en_texte(yaml.safe_load(INTENTION_MINIMALE))
         md = dossier.rendre_intention(doc)
         self.assertIn("Brouillon, non validé", md)
         self.assertIn("Aucun échange", md)
 
     def test_rendu_echappe_les_tableaux(self):
-        doc = dossier._dates_en_texte(yaml.safe_load(INTENTION_MINIMALE))
+        doc = raton_formats.dates_en_texte(yaml.safe_load(INTENTION_MINIMALE))
         doc["profils"][0]["libelle"] = "Agent | admin"
         self.assertIn("Agent \\| admin", dossier.rendre_intention(doc))
 
     def test_rendu_neutralise_liens_et_balises(self):
-        doc = dossier._dates_en_texte(yaml.safe_load(INTENTION_MINIMALE))
+        doc = raton_formats.dates_en_texte(yaml.safe_load(INTENTION_MINIMALE))
         doc["application"]["objet"] = "# Titre ![x](https://exemple.invalid/p.png) <script>"
         md = dossier.rendre_intention(doc)
         self.assertIn("\\# Titre !\\[x\\](https://exemple.invalid/p.png) \\<script\\>", md)

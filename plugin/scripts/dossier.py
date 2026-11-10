@@ -16,102 +16,16 @@ que les analyser ; il n'exécute rien de ce qu'ils contiennent.
 from __future__ import annotations
 
 import argparse
-import datetime as dt
-import json
 import sys
 from pathlib import Path
 
-try:
-    import yaml
-    from jsonschema import Draft202012Validator
-except ImportError:  # pragma: no cover
-    sys.exit(
-        "Dépendances manquantes (pyyaml, jsonschema). "
-        "Lancer avec « uv run dossier.py … » ou installer : pip install pyyaml jsonschema"
-    )
+from raton_formats import ErreurFormat, charger, doublons, erreurs_schema
+from raton_formats import ids as _ids
 
-SCHEMAS = Path(__file__).resolve().parent.parent / "schemas"
-FORMATS = {
-    "raton/intention/v0": "intention.schema.json",
-    "raton/technique/v0": "technique.schema.json",
-}
-TAILLE_MAX = 1_000_000  # octets ; un dossier légitime est bien plus petit
-
-
-class ErreurDossier(Exception):
-    pass
-
-
-# --- Chargement --------------------------------------------------------------
-
-
-class _Chargeur(yaml.SafeLoader):
-    """SafeLoader qui refuse les clés en double : YAML garde silencieusement la
-    dernière, ce qui permettrait de montrer une valeur à l'humain et d'en faire
-    lire une autre à un outil."""
-
-
-def _mapping_sans_doublon(chargeur, noeud, deep=False):
-    vues = set()
-    for cle, _ in noeud.value:
-        valeur = chargeur.construct_object(cle, deep=deep)
-        try:
-            doublon = valeur in vues
-        except TypeError:  # clé non hachable : construct_mapping la refusera
-            continue
-        if doublon:
-            raise ErreurDossier(f"ligne {cle.start_mark.line + 1} : clé en double « {valeur} »")
-        vues.add(valeur)
-    return chargeur.construct_mapping(noeud, deep=deep)
-
-
-_Chargeur.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _mapping_sans_doublon)
-
-
-def _dates_en_texte(valeur):
-    # YAML convertit 2026-11-08 en date ; le schéma attend du texte.
-    if isinstance(valeur, (dt.date, dt.datetime)):
-        return valeur.isoformat()
-    if isinstance(valeur, dict):
-        return {k: _dates_en_texte(v) for k, v in valeur.items()}
-    if isinstance(valeur, list):
-        return [_dates_en_texte(v) for v in valeur]
-    return valeur
-
-
-def charger(chemin: Path):
-    if chemin.stat().st_size > TAILLE_MAX:
-        raise ErreurDossier(f"{chemin} : fichier trop gros")
-    try:
-        with chemin.open(encoding="utf-8") as f:
-            contenu = yaml.load(f, Loader=_Chargeur)
-    except yaml.YAMLError as e:
-        raise ErreurDossier(f"{chemin} : YAML invalide : {e}") from None
-    return _dates_en_texte(contenu)
+FORMATS = ("raton/intention/v0", "raton/technique/v0")
 
 
 # --- Validation --------------------------------------------------------------
-
-
-def _schema(format_):
-    with (SCHEMAS / FORMATS[format_]).open(encoding="utf-8") as f:
-        return json.load(f)
-
-
-def _chemin_json(erreur):
-    return "/".join(str(p) for p in erreur.absolute_path) or "(racine)"
-
-
-def _ids(liste):
-    return [e.get("id") for e in liste or [] if isinstance(e, dict)]
-
-
-def _doublons(section, liste, erreurs):
-    vus = set()
-    for i in _ids(liste):
-        if i in vus:
-            erreurs.append(f"{section} : identifiant en double {i}")
-        vus.add(i)
 
 
 def _refs(contexte, refs, connus, erreurs):
@@ -124,7 +38,7 @@ def coherence_intention(doc):
     """Références internes à l'intention. Renvoie (erreurs, avertissements)."""
     erreurs, avert = [], []
     for section in ("profils", "donnees", "fonctions", "echanges", "exclusions"):
-        _doublons(section, doc.get(section), erreurs)
+        erreurs += doublons(section, doc.get(section))
     profils = set(_ids(doc["profils"]))
     donnees = set(_ids(doc["donnees"]))
     echanges = set(_ids(doc["echanges"]))
@@ -158,7 +72,7 @@ def coherence_intention(doc):
 def coherence_technique(doc, intention=None):
     erreurs = []
     for section in ("composants", "stockages", "services_tiers"):
-        _doublons(section, doc.get(section), erreurs)
+        erreurs += doublons(section, doc.get(section))
     if intention is None:
         return erreurs, []
     fonctions = set(_ids(intention["fonctions"]))
@@ -179,15 +93,7 @@ def coherence_technique(doc, intention=None):
 
 def valider_document(doc, intention=None):
     """Renvoie (format, erreurs, avertissements)."""
-    if not isinstance(doc, dict) or doc.get("format") not in FORMATS:
-        connus = ", ".join(FORMATS)
-        return None, [f"champ « format » absent ou inconnu (attendu : {connus})"], []
-    format_ = doc["format"]
-    validateur = Draft202012Validator(_schema(format_))
-    erreurs = [
-        f"{_chemin_json(e)} : {e.message}"
-        for e in sorted(validateur.iter_errors(doc), key=lambda e: list(map(str, e.absolute_path)))
-    ]
+    format_, erreurs = erreurs_schema(doc, FORMATS)
     if erreurs:  # la cohérence suppose un document conforme au schéma
         return format_, erreurs, []
     if format_ == "raton/intention/v0":
@@ -213,7 +119,7 @@ def valider_chemin(chemin: Path):
             _, err, av = valider_document(charger(fichier_t), intention)
             resultats.append((fichier_t, err, av))
         if not resultats:
-            raise ErreurDossier(f"{chemin} : ni intention.yaml ni technique.yaml")
+            raise ErreurFormat(f"{chemin} : ni intention.yaml ni technique.yaml")
     else:
         _, err, av = valider_document(charger(chemin))
         resultats.append((chemin, err, av))
@@ -366,7 +272,7 @@ def _charger_valide(chemin, format_, intention=None):
     doc = charger(chemin)
     fmt, erreurs, _ = valider_document(doc, intention)
     if erreurs or fmt != format_:
-        raise ErreurDossier(f"{chemin} : non valide, lancer d'abord « dossier.py valider »")
+        raise ErreurFormat(f"{chemin} : non valide, lancer d'abord « dossier.py valider »")
     return doc
 
 
@@ -401,7 +307,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         return args.func(args)
-    except (ErreurDossier, OSError) as e:
+    except (ErreurFormat, OSError) as e:
         print(f"erreur : {e}", file=sys.stderr)
         return 2
 
