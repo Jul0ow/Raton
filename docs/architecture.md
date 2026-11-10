@@ -1,6 +1,6 @@
 # Architecture
 
-Ce document montre comment s'enchaînent les skills, ce qu'ils lisent et produisent, et où interviennent les humains. Il suit la [feuille de route](feuille-de-route.md) ; les rôles qu'elle ne fixe pas encore sont rassemblés à la fin, dans [Hypothèses à confirmer](#hypothèses-à-confirmer).
+Ce document montre comment s'enchaînent les skills, ce qu'ils lisent et produisent, et où interviennent les humains. Il suit la [feuille de route](feuille-de-route.md) ; les rôles retenus sont rassemblés à la fin, dans [Rôles](#rôles).
 
 Code couleur des skills et des formats :
 
@@ -21,7 +21,7 @@ flowchart LR
   RAP -->|"application réelle"| SYN["Synthèse"] --> AVIS[/"Avis à signer"/]
 
   RAP -->|"cas du corpus"| CMP{{"constats.py comparer"}}
-  ATT[/"attendu.yaml<br/>corrigé du cas"/] --> CMP
+  ATT[/"attendu.yaml<br/>corrigé du cas<br/>corpus seulement"/] --> CMP
   CMP --> MES[/"Mesure : détectés,<br/>manqués, en trop"/]
   MES -.->|"améliorer prompts,<br/>règles, outils"| PIPE
 
@@ -34,7 +34,7 @@ flowchart LR
   class CAS,ATT,CMP,MES corpus
 ```
 
-**Boucle de production** (en haut) : une application réelle passe dans le pipeline, les rapports sont synthétisés en un avis que l'entreprise signe. Il n'y a pas de corrigé : personne ne sait d'avance ce que contient l'application.
+**Boucle de production** (en haut) : une application réelle passe dans le pipeline, les rapports sont synthétisés en un avis que le RSSI signe. Il n'y a pas de corrigé : personne ne sait d'avance ce que contient l'application.
 
 **Boucle de mesure** (en bas, en orange) : c'est le contrôle qualité de Raton lui-même, l'équivalent de tests unitaires pour les relecteurs.
 
@@ -55,8 +55,8 @@ sequenceDiagram
   autonumber
   actor M as Porteur métier
   participant R as Raton
-  actor E as Équipe de revue
-  actor S as Signataire
+  actor E as Équipe infra
+  actor S as RSSI
   actor X as Exploitation
 
   Note over M: Application produite avec une IA
@@ -92,8 +92,8 @@ sequenceDiagram
 Trois moments humains structurent le parcours :
 
 - **le métier atteste son intention** (étape 6) : c'est la référence de toute la revue ;
-- **l'équipe de revue tranche** les divergences entre passes et entre relecteurs (étape 13) ;
-- **le signataire engage l'entreprise** sur un commit précis (étape 20).
+- **l'équipe infra tranche** les divergences entre passes et entre relecteurs (étape 13) ;
+- **le RSSI engage l'entreprise** en signant l'avis sur un commit précis (étape 20).
 
 Toute nouvelle version repasse par la revue différentielle et donne un nouvel avis.
 
@@ -106,7 +106,7 @@ Le métier et l'auteur (souvent la même personne) préparent le dossier avant d
 ```mermaid
 flowchart LR
   M(("Porteur<br/>métier"))
-  E(("Équipe<br/>de revue"))
+  E(("Équipe<br/>infra"))
   RGPD[("Registre RGPD")]
   CODE[("Dépôt de l'application<br/>au commit SHA")]
 
@@ -156,7 +156,7 @@ flowchart LR
 
 ### Contrôler et conclure
 
-L'équipe de revue lance le pipeline sur le commit soumis. La fiche de qualification décide des contrôles à exécuter ; chacun produit un rapport au format commun.
+L'équipe infra lance le pipeline sur le commit soumis. La fiche de qualification décide des contrôles à exécuter ; chacun produit un rapport au format commun.
 
 ```mermaid
 flowchart LR
@@ -176,8 +176,8 @@ flowchart LR
   SYN["12 · Synthèse et avis"]
   AVIS[/"Avis sur le SHA<br/>Go · réserves · No-Go"/]
   DIFF["11 · Revue différentielle"]
-  E(("Équipe<br/>de revue"))
-  S(("Signataire"))
+  E(("Équipe<br/>infra"))
+  S(("RSSI"))
 
   QF -.->|"choisit les contrôles"| CTRL
   CODE --> CTRL
@@ -215,7 +215,7 @@ flowchart LR
   AV["Relecteur aveugle<br/>plusieurs passes"]
   INF["Relecteur informé<br/>plusieurs passes"]
   J["Juge"]
-  E(("Équipe<br/>de revue"))
+  E(("Équipe<br/>infra"))
 
   RECON[/"Reconstruction<br/>technique + flux"/]
   RI[/"Rapports : écarts,<br/>exclusions, failles"/]
@@ -240,13 +240,13 @@ flowchart LR
 
 - Le **relecteur aveugle** ne lit que le code et décrit ce que fait l'application, dans le format de la partie technique et de la matrice de flux.
 - Le **relecteur informé** confronte le code à l'intention : fonctions non décrites, exclusions violées, failles.
-- Le **juge** compare la reconstruction aveugle à ce que l'auteur a déclaré, et les passes entre elles. Un flux que l'aveugle a trouvé et que le dossier ne déclare pas devient un constat. Une divergence entre passes va à l'équipe de revue.
+- Le **juge** compare la reconstruction aveugle à ce que l'auteur a déclaré, et les passes entre elles. Un flux que l'aveugle a trouvé et que le dossier ne déclare pas devient un constat. Une divergence entre passes va à l'équipe infra.
 
 ## 4. Récapitulatif des skills
 
 | # | Skill | Qui intervient | Lit | Produit | État |
 |---|---|---|---|---|---|
-| 1 | Qualification | métier (répond), équipe de revue (valide) | réponses, registre RGPD | fiche de qualification : palier, contrôles obligatoires | à faire |
+| 1 | Qualification | métier (répond), équipe infra (valide) | réponses, registre RGPD | fiche de qualification : palier, contrôles obligatoires | à faire |
 | 2 | DAT | métier (intention), auteur avec une IA (technique) | entretien ; code pour la partie technique | `intention.yaml`, `technique.yaml` | en place |
 | 3 | Matrice de flux | auteur | intention, code | `flux.yaml`, d'où sont générées les NetworkPolicies | à faire |
 | 4 | Dossier d'exploitation | auteur, exploitation | — | dossier d'exploitation | à faire |
@@ -254,10 +254,10 @@ flowchart LR
 | 6 | Chaîne d'approvisionnement | outils | manifestes, lockfiles, images | SBOM, rapport | à faire |
 | 7 | Secrets | outils | code, historique git | rapport | à faire |
 | 8 | Identité et accès | outils, agent | code, partie technique | rapport | à faire |
-| 9 | Revue par agents | agents ; l'équipe de revue tranche | code ; dossier pour l'informé et le juge | reconstruction, rapports | à faire |
+| 9 | Revue par agents | agents ; l'équipe infra tranche | code ; dossier pour l'informé et le juge | reconstruction, rapports | à faire |
 | 10 | Analyse dynamique | outils, en bac à sable | application déployée, `flux.yaml` | rapport des flux observés | à faire |
-| 11 | Revue différentielle | agents ; équipe de revue | avis précédent, delta entre commits | rapports, nouvel avis | à faire |
-| 12 | Synthèse et avis | agent ; équipe de revue ; signataire | rapports, qualification | avis Go, Go avec réserves ou No-Go | à faire |
+| 11 | Revue différentielle | agents ; équipe infra | avis précédent, delta entre commits | rapports, nouvel avis | à faire |
+| 12 | Synthèse et avis | agent ; équipe infra ; RSSI (signe) | rapports, qualification | avis Go, Go avec réserves ou No-Go | à faire |
 | 13 | Pré-contrôle | métier, seul | dossier, qualification | liste des manques | à faire |
 
 Composants transverses :
@@ -271,12 +271,16 @@ Composants transverses :
 | Image conteneur d'outillage (Semgrep, gitleaks, Trivy…) | à faire |
 | Corpus de test | un cas : `notes-de-frais` |
 
-## Hypothèses à confirmer
+## Rôles
 
-La feuille de route ne fixe pas encore ces rôles. Les diagrammes retiennent les hypothèses suivantes :
+Rôles retenus le 2026-11-10, comme hypothèse de travail en attendant une décision formelle :
 
-- **Équipe de revue** : le diagramme suppose qu'une même équipe (sécurité, architecture ?) lance le pipeline, tranche les divergences et présente l'avis au signataire.
-- **Validation de la qualification** : faite par l'équipe de revue, pas seulement par le métier, parce que l'auteur a intérêt à sous-évaluer la sensibilité de son application pour alléger les contrôles.
-- **Signataire** : RSSI, architecte ou comité, question ouverte de la feuille de route.
-- **Exploitation** : reçoit l'avis signé, les NetworkPolicies et le dossier d'exploitation, puis déploie.
-- **Mainteneurs de Raton** : l'équipe qui développe la bibliothèque et son corpus.
+| Rôle | Qui | Ce qu'il fait |
+|---|---|---|
+| Porteur métier | la personne ou l'équipe métier qui a produit l'application, souvent l'auteur du code | répond à la qualification, rédige et atteste l'intention, constitue le dossier, corrige les constats |
+| Équipe de revue | **l'équipe infra** | valide la qualification, lance le pipeline, tranche les divergences entre relecteurs, présente l'avis au signataire |
+| Signataire | **le RSSI** | signe l'avis (Go, Go avec réserves, No-Go) sur un commit précis |
+| Exploitation | à préciser, probablement l'équipe infra, qui opère Kubernetes | déploie, applique les NetworkPolicies générées depuis la matrice de flux |
+| Mainteneurs de Raton | l'équipe qui développe la bibliothèque | construisent les cas du corpus, écrivent leurs corrigés, mesurent Raton |
+
+La qualification est validée par l'équipe infra et pas seulement par le métier : l'auteur a intérêt à sous-évaluer la sensibilité de son application pour alléger les contrôles.

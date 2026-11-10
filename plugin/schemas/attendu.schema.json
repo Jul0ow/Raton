@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:raton:schema:attendu:v0",
-  "title": "Constats attendus d'un cas du corpus",
-  "description": "Corrigé d'un cas du corpus de test. Jamais montré aux relecteurs.",
+  "title": "Corrigé d'un cas du corpus",
+  "description": "Constats qu'un cas piégé du corpus doit faire apparaître. Écrit par les mainteneurs de Raton en construisant le piège, il sert uniquement à mesurer ce que Raton détecte (constats.py comparer). Il ne joue aucun rôle dans la revue d'une application réelle, qui n'a pas de corrigé, et n'est jamais montré aux relecteurs.",
   "type": "object",
   "additionalProperties": false,
   "required": ["format", "cas", "constats"],

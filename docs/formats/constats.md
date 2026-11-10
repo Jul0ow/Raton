@@ -2,7 +2,9 @@
 
 Statut : **proposition à valider** (2026-11-10).
 
-Chaque contrôle (outil, agent ou humain) produit un **rapport** : sur quel commit il a porté, ce qu'il a vérifié et ce qu'il n'a pas vérifié, et ses **constats**. La synthèse agrège les rapports pour rédiger l'avis ; le juge compare ceux de plusieurs passes ; le corpus de test mesure ce qu'ils détectent.
+Chaque contrôle (outil, agent ou humain) produit un **rapport** : sur quel commit il a porté, ce qu'il a vérifié et ce qu'il n'a pas vérifié, et ses **constats**. La synthèse agrège les rapports pour rédiger l'avis ; le juge compare ceux de plusieurs passes.
+
+Le même format sert aussi au **corrigé** d'un cas du corpus (`attendu.yaml`). Le corrigé ne joue aucun rôle dans la revue d'une application : il sert uniquement à mesurer ce que Raton détecte, en comparant les rapports produits sur un cas piégé aux constats que ce cas aurait dû faire apparaître (voir [Corrigés du corpus : mesurer Raton](#corrigés-du-corpus--mesurer-raton)).
 
 Les schémas font foi : [`rapport.schema.json`](../../plugin/schemas/rapport.schema.json), [`constat.schema.json`](../../plugin/schemas/constat.schema.json) et [`attendu.schema.json`](../../plugin/schemas/attendu.schema.json). Le guide destiné aux producteurs, avec les définitions des catégories, de la sévérité et de la confiance, est [`plugin/references/constats.md`](../../plugin/references/constats.md).
 
@@ -55,9 +57,18 @@ Chaque constat en sort `verifie`, `refute` (une preuve est fausse) ou `non_verif
 
 `constats.py valider` ajoute au schéma quelques règles : identifiants uniques, plages de lignes cohérentes et bornées, extraits assez longs pour être probants, secret masqué dans tout constat `secret_expose`.
 
-## Corrigés du corpus
+## Corrigés du corpus : mesurer Raton
 
-Le corrigé sert à mesurer Raton lui-même, pas à relire une application : voir la [boucle de mesure](../architecture.md#1-un-même-pipeline-deux-usages). Les mainteneurs de Raton l'écrivent en construisant le cas piégé.
+Le corrigé et la comparaison servent à **évaluer Raton lui-même**, jamais à relire une application. C'est la [boucle de mesure](../architecture.md#1-un-même-pipeline-deux-usages) de l'architecture :
+
+- **Qui écrit le corrigé ?** Les mainteneurs de Raton, en construisant un cas piégé du corpus. Ils savent ce qu'ils ont caché ; le corrigé le dit dans le format des constats.
+- **Quand sert-il ?** Uniquement sur les cas du corpus. Une application réelle n'a pas de corrigé : personne ne sait d'avance ce qu'elle contient. Sa revue s'arrête à la synthèse et à l'avis.
+- **Qui le voit ?** Personne dans le pipeline : les relecteurs ne reçoivent que le dépôt du cas. Le corrigé n'intervient qu'après, pour noter leurs rapports.
+- **À quoi sert la comparaison ?**
+  - mesurer la détection : quelle part des pièges est trouvée, et combien de constats sont des faux positifs ;
+  - éviter les régressions : un changement de prompt, de modèle ou de version d'outil se mesure avant d'être adopté ;
+  - trancher sur des chiffres les questions ouvertes, comme la diversité des relecteurs ;
+  - fonder la rubrique « ce qui n'a pas été vérifié » de l'avis sur ce que Raton sait, ou ne sait pas, détecter.
 
 Un corrigé (`attendu.yaml`) liste les constats attendus d'un cas, au même format, avec en plus `detecte_par` : les contrôles censés trouver chacun d'eux.
 
@@ -152,4 +163,4 @@ La clé publique du DSN est masquée par `***` : ce n'est pas obligatoire hors `
 3. Une liste fermée de 23 catégories, le détail étant porté par `regle` et `cwe`.
 4. Cinq niveaux de sévérité et trois niveaux de confiance, définis dans le guide.
 5. Des preuves typées, vérifiées mécaniquement quand c'est possible, et la valeur des secrets toujours masquée.
-6. La règle d'appariement ci-dessus pour mesurer le corpus.
+6. La règle d'appariement ci-dessus pour mesurer Raton sur le corpus.

@@ -7,7 +7,12 @@
 
   constats.py valider FICHIER…                 schéma et règles de cohérence
   constats.py verifier FICHIER --depot DEPOT   les preuves citées existent-elles dans le dépôt ?
-  constats.py comparer ATTENDU RAPPORT…        constats détectés, manqués et supplémentaires
+  constats.py comparer ATTENDU RAPPORT…        mesure de Raton sur un cas du corpus
+
+valider et verifier servent à la revue de toute application. comparer ne sert qu'au
+corpus de test : il confronte les rapports produits sur un cas piégé à son corrigé
+(attendu.yaml, écrit par les mainteneurs de Raton) pour mesurer ce que Raton détecte.
+Une application réelle n'a pas de corrigé.
 
 Les rapports peuvent venir d'un agent, et les extraits qu'ils citent viennent de l'auteur :
 ce sont des données non fiables. Le script les compare au dépôt sans rien exécuter, et
@@ -254,7 +259,8 @@ def meme_emplacement(a, b):
 
 
 def comparer(attendu, rapports):
-    """Mesure des rapports contre un corrigé. Un constat attendu est détecté si un
+    """Mesure de Raton sur un cas du corpus : rapports produits contre corrigé.
+    Un constat attendu est détecté si un
     constat obtenu a la même catégorie et au moins une preuve correspondante. Il est
     hors périmètre si aucun des contrôles des rapports n'est censé le trouver."""
     controles = {r["controle"] for r in rapports}
@@ -367,7 +373,7 @@ def main(argv=None):
     p.add_argument("fichier")
     p.add_argument("--depot", required=True, help="racine du dépôt relu, au commit du rapport")
     p.set_defaults(func=_cmd_verifier)
-    p = sous.add_parser("comparer", help="comparer des rapports à un corrigé du corpus")
+    p = sous.add_parser("comparer", help="mesurer Raton : comparer les rapports d'un cas du corpus à son corrigé")
     p.add_argument("attendu")
     p.add_argument("rapports", nargs="+")
     p.add_argument("--json", action="store_true")

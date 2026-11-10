@@ -1,6 +1,13 @@
 # Corpus de test
 
-Applications volontairement piégées, avec les constats qu'une revue correcte doit produire. Le corpus sert à mesurer ce que la bibliothèque détecte réellement.
+Applications volontairement piégées, avec les constats qu'une revue correcte doit produire. Le corpus ne sert pas à relire des applications : il sert à **mesurer Raton lui-même**, comme des tests unitaires pour les relecteurs (voir la [boucle de mesure](../docs/architecture.md#1-un-même-pipeline-deux-usages)).
+
+- Les mainteneurs de Raton construisent chaque cas : ils cachent un piège dans `depot/` et écrivent le corrigé, `attendu.yaml`.
+- Le pipeline relit `depot/` comme n'importe quelle application et produit ses rapports.
+- `constats.py comparer` confronte ces rapports au corrigé : constats détectés, manqués, et en trop.
+- Le résultat sert à mesurer la détection et les faux positifs, à vérifier qu'un changement de prompt, de modèle ou d'outil ne dégrade rien, et à fonder la rubrique « ce qui n'a pas été vérifié » des avis.
+
+Une application réelle n'a pas de corrigé : sa revue s'arrête à l'avis.
 
 ## Structure d'un cas
 

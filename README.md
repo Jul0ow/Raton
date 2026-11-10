@@ -12,9 +12,9 @@ Projet en démarrage : voir la [feuille de route](docs/feuille-de-route.md) et l
 | `plugin/skills/dat/` | skill de co-rédaction du DAT |
 | `plugin/schemas/` | schémas communs : intention, technique, rapport de contrôle, constat, corrigé du corpus |
 | `plugin/scripts/dossier.py` | validation, rendu lisible et écarts du dossier `.raton/` |
-| `plugin/scripts/constats.py` | validation des rapports, vérification des preuves dans le dépôt, comparaison avec un corrigé |
+| `plugin/scripts/constats.py` | validation des rapports, vérification des preuves dans le dépôt ; mesure de Raton sur le corpus (comparaison avec un corrigé) |
 | `plugin/references/` | guides partagés par les skills, dont la rédaction des constats |
-| `corpus/` | applications piégées et constats attendus, pour mesurer la détection |
+| `corpus/` | applications piégées et leurs corrigés, pour mesurer ce que Raton détecte ; jamais utilisé pour relire une vraie application |
 | `docs/` | feuille de route, [architecture](docs/architecture.md) et formats ([DAT](docs/formats/dat.md), [constats](docs/formats/constats.md)) |
 | `tests/` | tests des schémas, du script et du corpus |
 
