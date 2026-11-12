@@ -22,7 +22,9 @@ Cas réel visé par le modèle de menace : une négligence, pas une malveillance
 
 ## Qualification
 
-La [fiche](qualification.yaml) classe l'application au palier 2 : données personnelles des salariés, intégrité, confidentialité et preuve de niveau 3, application interne. La revue aveugle et le juge sont donc obligatoires ; l'analyse dynamique ne l'est pas. Le piège reste ainsi à la portée des contrôles exigés.
+La [fiche](qualification.yaml) classe l'application au palier 3 : elle écrit dans le logiciel de comptabilité, un système sensible, et envoie les justificatifs à un service d'IA externe. Tous les contrôles sont donc obligatoires, analyse dynamique comprise.
+
+Le SDK Sentry ne figure pas non plus parmi les interconnexions de la fiche : le trouver oblige aussi à requalifier l'application.
 
 ## Hors du périmètre de ce cas
 

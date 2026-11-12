@@ -1,6 +1,6 @@
 # Format du DAT
 
-Statut : **validé** le 2026-11-08 (format v0).
+Statut : **validé** le 2026-11-08 (format v0). Complété le 2026-11-12 : les échanges renvoient aux interconnexions de la qualification.
 
 Le DAT (dossier d'architecture technique) décrit une application soumise à la revue. Il a deux rôles :
 
@@ -48,11 +48,13 @@ Elle est écrite en langage métier, sans vocabulaire technique. Le porteur mét
 | `profils` | qui utilise l'application : population interne ou externe, effectif approximatif | contrôle d'accès attendu (skill 8) |
 | `donnees` | catégories de données manipulées : origine, caractère personnel, durée de conservation | proportionnalité, RGPD, détection des données inattendues |
 | `fonctions` | ce que l'application permet de faire, pour quels profils ou sur quel déclencheur, sur quelles données, avec quels échanges | détection des fonctions non décrites |
-| `echanges` | systèmes et services avec lesquels l'application échange des données, dans quel sens, lesquelles, pourquoi | référence de la matrice de flux |
+| `echanges` | systèmes et services avec lesquels l'application échange des données, dans quel sens, lesquelles, pourquoi, et par quelles interconnexions de la fiche de qualification | référence de la matrice de flux, recoupement avec la qualification |
 | `exclusions` | ce que l'application ne fait pas, dit explicitement | affirmations vérifiables, par exemple « aucune donnée ne sort de l'entreprise » |
 | `validation` | rédacteur, valideur, date, version, attestation de rédaction sans le code | traçabilité de la référence |
 
 Le champ `sens` d'un échange donne le sens des **données** (`recoit`, `envoie`, `les_deux`), comme le métier le pense. Le sens des **connexions** (qui initie) est porté par la matrice de flux.
+
+Le champ `interconnexions` d'un échange cite les [interconnexions de la fiche de qualification](qualification.md#interconnexions) par lesquelles il passe. La fiche n'est pas du code : le métier peut l'avoir sous les yeux pendant la phase intention. Un échange qui ne correspond à aucune interconnexion révèle une qualification incomplète. On l'écrit alors sans ce champ, et on fait requalifier l'application. Le champ est facultatif pour le schéma, qui reste compatible avec les intentions déjà écrites ; c'est `qualification.py valider --intention` qui exige un renvoi pour chaque échange.
 
 Tant que la section `validation` est absente, l'intention est un brouillon : on peut la valider contre le schéma et la rendre lisible, mais la revue ne peut pas s'appuyer dessus.
 
@@ -114,16 +116,19 @@ fonctions:
 echanges:
   - id: E01
     partenaire: Annuaire de l'entreprise
+    interconnexions: [I01]
     sens: recoit
     donnees: [D03]
     motif: savoir quels salariés dépendent d'un manager
   - id: E02
     partenaire: Service d'IA externe (fournisseur à préciser)
+    interconnexions: [I02]
     sens: les_deux
     donnees: [D02, D01]
     motif: lire le montant et la date sur les justificatifs
   - id: E03
     partenaire: Logiciel de comptabilité
+    interconnexions: [I03]
     sens: envoie
     donnees: [D01]
     motif: export des notes validées
@@ -216,9 +221,14 @@ Intention et technique (revue informée) :
 - ⚙ chaque rôle technique correspond à un profil `P`, et un rôle sans profil (un `admin` par exemple) est un constat ; chaque profil a un rôle ;
 - chaque exclusion `X` reçoit un verdict du relecteur informé : respectée, violée ou non vérifiable.
 
+Intention et qualification (`qualification.py valider --intention`, voir les [recoupements](qualification.md#recoupements-avec-lintention)) :
+
+- ⚙ chaque échange renvoie à au moins une interconnexion de la fiche, et un échange où l'application envoie des données ne passe pas seulement par des interconnexions en lecture ;
+- ⚙ la fiche n'est pas en deçà de l'intention : profils externes, données personnelles.
+
 Intention et matrice de flux :
 
-- chaque flux sortant de l'application renvoie à un échange `E` ou à un service d'infrastructure du SI (SSO, gestionnaire de secrets, journalisation), et un échange sans flux est une incohérence. La forme exacte sera fixée avec le format de la matrice (skill 3).
+- chaque flux sortant de l'application renvoie à un échange `E` ou à un service d'infrastructure du SI (SSO, gestionnaire de secrets, journalisation), et un échange sans flux est une incohérence. La forme exacte sera fixée avec le format de la matrice (skill 3) ; les flux renverront aussi aux interconnexions de la qualification.
 
 Technique déclarée et reconstruction aveugle :
 
@@ -238,6 +248,8 @@ Validées le 2026-11-08 :
 2. YAML et schéma JSON, avec un rendu lisible généré pour la validation humaine.
 3. Dossier dans `.raton/`, versionné avec le code ; empreinte de l'intention enregistrée dans l'avis.
 4. Identifiants courts à préfixe (`P01`, `F01`…).
+
+Complété le 2026-11-12 : chaque échange peut citer les interconnexions de la fiche de qualification par lesquelles il passe.
 
 Écarté pour l'instant : exiger un second valideur de l'intention quand l'auteur du code et le porteur métier sont la même personne.
 

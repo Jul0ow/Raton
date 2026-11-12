@@ -1,6 +1,6 @@
 # Format de la fiche de qualification
 
-Statut : **validé** le 2026-11-12 (format v0). L'échelle DICP pourra être revue avec la PSSI, et une section sur les interconnexions est en discussion.
+Statut : **validé** le 2026-11-12 (format v0). La section [Interconnexions](#interconnexions), ajoutée le même jour d'après tes réponses, reste à relire. L'échelle DICP pourra être revue avec la PSSI.
 
 La qualification est la première étape du parcours. Elle classe l'application selon le tort qu'elle pourrait causer, puis en déduit le **palier d'exigence** et la liste des **contrôles obligatoires**. Le métier répond aux questions ; l'équipe infra valide la fiche.
 
@@ -13,6 +13,7 @@ Le schéma fait foi : [`qualification.schema.json`](../../plugin/schemas/qualifi
   - l'équipe infra valide la fiche et la range hors de portée de l'auteur ;
   - chaque niveau porte son motif, que l'équipe infra peut discuter ;
   - le script recoupe la fiche avec l'intention attestée par le métier.
+- **Borner les capacités.** Une application qui peut parler à beaucoup d'outils a beaucoup de capacités. Si son code est piégé, bogué ou compromis par une dépendance, toutes passent à l'attaquant. La fiche liste ses interconnexions et ses droits ; l'équipe infra ne crée que les comptes de service et les droits qui y figurent.
 - **Poser des questions métier.** Le métier ne sait pas dire « confidentialité 3 ». Il sait en revanche dire ce qui se passe si l'application s'arrête une journée ou si ses informations circulent. Le skill pose ces questions et en déduit le niveau d'après une échelle écrite.
 - **Tracer.** La fiche est versionnée, et elle dit qui l'a renseignée, qui l'a validée et quand. L'avis enregistre la version et l'empreinte de la fiche appliquée.
 
@@ -54,6 +55,7 @@ Dans le corpus, la fiche est rangée à côté de `depot/`, et non dedans, pour 
 | `application` | code (identifiant stable, nom du répertoire), nom, objet, porteur, dépôt | métier |
 | `exposition` | `interne` ou `externe` | métier |
 | `utilisateurs` | populations (`interne`, `externe`, `public`), effectif | métier |
+| `interconnexions` | systèmes que l'application ne possède pas et avec lesquels elle communique : usage, zone, nature, accès, sensibilité du système | métier pour les systèmes et leur usage ; équipe infra pour la nature, les droits et la sensibilité |
 | `donnees_personnelles` | niveau (`non`, `oui`, `sensibles`), personnes concernées, volume | métier |
 | `dicp` | pour chacun des quatre axes : un niveau de 1 à 4 et son motif | métier, sur les questions du skill |
 | `exigences` | palier retenu, contrôles obligatoires, justification s'ils dépassent le minimum | script ; l'équipe infra peut relever |
@@ -61,7 +63,7 @@ Dans le corpus, la fiche est rangée à côté de `depot/`, et non dedans, pour 
 
 Définitions :
 
-- **Exposition `externe`** : l'application est joignable depuis un réseau que l'entreprise ne maîtrise pas. C'est le cas d'Internet, mais aussi du réseau d'interconnexion avec un partenaire ou d'un extranet. Un tel réseau est traité comme peu fiable, même derrière une authentification et quel que soit le lien contractuel avec le partenaire. Une application joignable seulement depuis le réseau de l'entreprise, VPN compris, est `interne`.
+- **Exposition `externe`** : l'application est joignable depuis un réseau que l'entreprise ne maîtrise pas. C'est le cas d'Internet, mais aussi du réseau d'interconnexion avec un partenaire ou d'un extranet. Un tel réseau est traité comme peu fiable, même derrière une authentification et quel que soit le lien contractuel avec le partenaire. Une application joignable seulement depuis le réseau de l'entreprise, VPN compris, est `interne`. Le champ décrit l'accès entrant ; une interconnexion de zone externe compte aussi comme une exposition externe, car un flux sortant vers un réseau extérieur expose l'application autant qu'un accès entrant.
 - **Utilisateurs** :
   - `interne` : les salariés ;
   - `externe` : des personnes extérieures identifiées, avec un compte nominatif (clients, fournisseurs, partenaires) ;
@@ -74,6 +76,31 @@ Définitions :
   L'échelle est celle du champ `personnelles` de l'intention, ce qui permet le recoupement.
 
 La feuille de route cite la **criticité métier** parmi les critères. Ce n'est pas un critère à part : c'est ce que mesurent la disponibilité et l'intégrité, à travers l'impact d'un arrêt ou d'une erreur sur l'activité. Un critère séparé ferait répondre deux fois à la même question, avec le risque d'obtenir deux réponses différentes.
+
+## Interconnexions
+
+Une interconnexion est un système que l'application ne possède pas et avec lequel elle communique, dans un sens ou dans l'autre :
+
+- les applications, outils et bases de l'entreprise : annuaire, ERP, comptabilité, GED, messagerie, ou la base d'une autre application interrogée directement ;
+- les services extérieurs : services en ligne, IA, partenaires, prestataires.
+
+N'en sont pas les stockages propres de l'application, que décrit la partie technique du DAT, ni les services d'infrastructure fournis à toutes les applications : authentification par le SSO, gestionnaire de secrets, journalisation, supervision.
+
+| Champ | Valeurs | Rempli par |
+|---|---|---|
+| `systeme`, `usage` | le système, et ce que l'application y fait, en mots métier | métier |
+| `zone` | `interne` ; `externe` : hors de l'entreprise, ou joint par un réseau qu'elle ne maîtrise pas, comme une interconnexion avec un partenaire | métier, vérifié par l'équipe infra |
+| `nature` | `api`, `base_de_donnees` (accès direct à la base d'une autre application, qui contourne ses règles), `fichiers`, `courriel`, `autre` | équipe infra |
+| `acces` | `lecture` : consulte ; `ecriture` : crée, modifie, supprime ou déclenche une action ; `administration` : gère le système lui-même (comptes, droits, configuration) | métier avec ses mots, précisé par l'équipe infra |
+| `sensible` | `oui` ou `non` : sensibilité du système cible | équipe infra |
+
+Le métier ne sait pas toujours si l'application passe par une API ou lit directement une base, ni avec quels droits. Tant que la fiche est un brouillon, les champs `zone`, `nature`, `acces` et `sensible` acceptent donc `a_verifier`. Ce qui reste à vérifier compte au plus haut dans le calcul : zone externe, administration, système sensible. Une fiche validée ne peut plus rien laisser à vérifier.
+
+**Sensibilité du système cible.** Elle vient du référentiel des applications de l'entreprise quand il existe. Faute de référentiel, comme aujourd'hui, il faut demander à l'équipe infra, qui dit à la validation si le système est sensible. Exemples typiques : annuaire et gestion des identités, paie, comptabilité et ERP, systèmes de production.
+
+**Les droits, pas le nombre.** Le palier dépend des droits, de la sensibilité du système cible et de la zone. Le nombre d'interconnexions n'intervient pas : vingt lectures de référentiels sans enjeu pèsent moins qu'une seule écriture dans la paie.
+
+**Une liste qui borne les droits.** La matrice de flux génère les NetworkPolicies ; de la même façon, les interconnexions validées sont la liste des comptes de service et des droits que l'équipe infra crée pour l'application. Ce qui n'y figure pas n'a pas de compte. Une connexion trouvée par la revue aveugle, la matrice de flux ou l'analyse dynamique, et absente de la fiche, oblige à requalifier.
 
 ## Échelle DICP
 
@@ -90,12 +117,13 @@ C'est une échelle par défaut. Elle est à aligner sur celle de la PSSI de l'en
 
 ## Calcul du palier
 
-On regarde le palier atteint par chaque critère et on retient le plus élevé. Si l'application a une exposition externe, on monte d'un palier, sans dépasser 3.
+On regarde le palier atteint par chaque critère et on retient le plus élevé. Si l'application a une exposition externe, par un accès entrant ou par une interconnexion de zone externe, on monte d'un palier, sans dépasser 3.
 
 | Critère | Palier 1 | Palier 2 | Palier 3 |
 |---|---|---|---|
 | Utilisateurs | salariés seulement | personnes extérieures identifiées | public sans compte |
 | Données personnelles | aucune, hors identité des utilisateurs | oui | sensibles |
+| Chaque interconnexion | lecture sur un système non sensible | écriture sur un système non sensible, ou lecture sur un système sensible | écriture sur un système sensible, ou administration |
 | Chacun des quatre axes DICP | niveau 1 ou 2 | niveau 3 | niveau 4 |
 
 Contrôles obligatoires selon le palier :
@@ -111,8 +139,8 @@ Contrôles obligatoires selon le palier :
 Pourquoi cette répartition :
 
 - **Le socle couvre déjà le modèle de menace principal** : données envoyées à un tiers, SDK de télémétrie, dépendance compromise. Les outils déterministes coûtent peu, la revue informée confronte le code à l'intention, et la matrice de flux bloque en production tout flux non déclaré.
-- **La revue aveugle s'ajoute au palier 2** : dès que l'application traite des données personnelles, sert des utilisateurs extérieurs, a une exposition externe ou a un besoin DICP de niveau 3. Le relecteur informé lit le dossier et risque d'y être ancré ; l'aveugle, qui ne le voit pas, trouve ce que le dossier tait.
-- **L'analyse dynamique, la plus coûteuse, est réservée au palier 3.** Elle concerne une application ouverte au public, traitant des données sensibles, ayant un besoin de niveau 4, ou ayant une exposition externe alors qu'elle relève déjà du palier 2.
+- **La revue aveugle s'ajoute au palier 2** : dès que l'application traite des données personnelles, sert des utilisateurs extérieurs, a une exposition externe, écrit dans un autre système, lit un système sensible ou a un besoin DICP de niveau 3. Le relecteur informé lit le dossier et risque d'y être ancré ; l'aveugle, qui ne le voit pas, trouve ce que le dossier tait.
+- **L'analyse dynamique, la plus coûteuse, est réservée au palier 3.** Elle concerne une application ouverte au public, traitant des données sensibles, écrivant dans un système sensible ou en ayant l'administration, ayant un besoin de niveau 4, ou ayant une exposition externe alors qu'elle relève déjà du palier 2.
 
 Le dossier (DAT, matrice de flux, dossier d'exploitation) est exigé à tous les paliers, comme le prévoit le [format du DAT](dat.md#proportionnalité). La revue différentielle ne dépend pas du palier : toute nouvelle version y passe.
 
@@ -147,6 +175,29 @@ utilisateurs:
   populations: [interne]
   effectif: 2000
 
+interconnexions:
+  - id: I01
+    systeme: Annuaire de l'entreprise
+    usage: savoir quels salariés dépendent d'un manager
+    zone: interne
+    nature: api
+    acces: lecture
+    sensible: oui
+  - id: I02
+    systeme: Service d'IA externe (fournisseur à préciser)
+    usage: lire le montant et la date sur les justificatifs
+    zone: externe
+    nature: api
+    acces: ecriture
+    sensible: non
+  - id: I03
+    systeme: Logiciel de comptabilité
+    usage: exporter les notes validées
+    zone: interne
+    nature: api
+    acces: ecriture
+    sensible: oui
+
 donnees_personnelles:
   niveau: oui
   personnes: [salariés]
@@ -167,7 +218,7 @@ dicp:
     motif: savoir qui a validé chaque note, pour les contrôles comptables et fiscaux
 
 exigences:
-  palier: 2
+  palier: 3
   controles:
     - dat
     - matrice_flux
@@ -180,6 +231,7 @@ exigences:
     - revue_informee
     - juge
     - revue_aveugle
+    - analyse_dynamique
 
 validation:
   version: 1
@@ -190,18 +242,20 @@ validation:
 
 Le palier se calcule ainsi :
 
-- aucun critère n'atteint le palier 3 ;
-- les données personnelles et trois axes DICP donnent le palier 2 ;
-- l'exposition est interne, donc rien ne s'ajoute.
+- l'export vers la comptabilité, une écriture sur un système sensible, donne à lui seul le palier 3 ;
+- les données personnelles, la lecture de l'annuaire et trois axes DICP donnent le palier 2 ;
+- l'envoi des justificatifs au service d'IA externe est une exposition externe, qui ajouterait un palier si l'application n'était pas déjà au maximum.
 
-Elle passe donc la revue aveugle mais pas l'analyse dynamique. Son piège, un SDK qui envoie des données à un service externe, reste à portée de la revue informée, de la revue aveugle et du juge, et l'egress généré depuis la matrice de flux le bloquerait en production.
+Elle passe donc toutes les revues, analyse dynamique comprise. Son piège, un SDK qui envoie des données à un service externe absent de la fiche comme de l'intention, est à la portée de la revue informée, de la revue aveugle, du juge et de l'analyse dynamique. En production, l'egress généré depuis la matrice de flux le bloquerait.
 
 ## Recoupements avec l'intention
 
 L'intention est rédigée après la qualification, et elle est attestée par le métier. Le script recoupe les deux documents, car la fiche ne peut pas être en deçà de ce que déclare l'intention :
 
 - un profil `externe` dans l'intention exige des utilisateurs `externe` ou `public` dans la fiche ;
-- aucune donnée de l'intention ne peut être plus personnelle que le niveau de la fiche : une donnée `sensibles` exige une fiche `sensibles`.
+- aucune donnée de l'intention ne peut être plus personnelle que le niveau de la fiche : une donnée `sensibles` exige une fiche `sensibles` ;
+- chaque échange de l'intention renvoie à au moins une interconnexion de la fiche, par son champ `interconnexions` : un échange qui n'en cite aucune, ou qui cite une interconnexion absente de la fiche, révèle un système oublié ;
+- un échange où l'application envoie des données ne peut pas passer seulement par des interconnexions en lecture.
 
 Chaque écart est une erreur. Pour le résoudre, il faut soit requalifier l'application (nouvelle version de la fiche, validée par l'équipe infra), soit corriger l'intention. Le pré-contrôle et le pipeline refont ce recoupement à chaque soumission : une intention qui s'enrichit d'un profil ou d'une donnée déclenche donc la requalification.
 
@@ -209,13 +263,15 @@ Le script signale aussi, sans bloquer, les points qui méritent une question de 
 
 - une confidentialité de niveau 1 alors que l'application traite des données personnelles ;
 - une confidentialité inférieure à 3 alors qu'elle traite des données sensibles ;
-- des données sensibles, pour lesquelles il faut vérifier avec le DPO si une analyse d'impact (AIPD) est requise.
+- des données sensibles, pour lesquelles il faut vérifier avec le DPO si une analyse d'impact (AIPD) est requise ;
+- une interconnexion qu'aucun échange de l'intention ne cite : si elle ne sert pas, elle ne doit pas recevoir de droits.
 
 ## Validation
 
 Une fiche validée respecte, en plus du schéma, ces règles :
 
 - les exigences ne sont pas en deçà du minimum calculé, et une justification accompagne tout dépassement ;
+- aucun champ d'interconnexion n'est `a_verifier` ;
 - la personne qui valide n'est ni celle qui a renseigné la fiche, ni le porteur métier.
 
 Le script ne compare que les noms : il n'écarte que le cas évident. La vraie garantie vient du circuit, puisque seule l'équipe infra fait entrer une fiche dans son dépôt.
@@ -259,3 +315,14 @@ Demandés à la même relecture :
 - deux circuits pour transmettre la fiche, la demande de fusion ou le ticket, pour les métiers qui ne connaissent pas GitLab ;
 - une exposition `externe` plutôt que `internet` : tout réseau que l'entreprise ne maîtrise pas est peu fiable, interconnexions avec les partenaires comprises ;
 - le registre RGPD écarté pour l'instant.
+
+Interconnexions, décidées le 2026-11-12 :
+
+- la section couvre les systèmes de l'entreprise et les services extérieurs, avec leur zone ;
+- le palier dépend des droits, de la sensibilité du système cible et de la zone, pas du nombre d'interconnexions ;
+- une interconnexion de zone externe compte comme une exposition externe ;
+- sans référentiel des applications, c'est l'équipe infra qui dit si un système est sensible ;
+- le métier décrit les interconnexions avec ses mots, l'équipe infra précise la nature et les droits ;
+- les échanges de l'intention, et plus tard les flux de la matrice, renvoient aux interconnexions.
+
+Proposé, à valider : le tableau qui donne le palier selon les droits et la sensibilité, et la règle selon laquelle ce qui reste à vérifier compte au plus haut.

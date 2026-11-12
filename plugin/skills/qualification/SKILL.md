@@ -44,15 +44,16 @@ S'il manque `pyyaml` ou `jsonschema`, remplace `python3` par `uv run`.
 
 ## Phase renseigner
 
-Ton interlocuteur est le porteur métier. Il ne lit pas de YAML et ne connaît pas le vocabulaire de la sécurité. Lis d'abord `references/questions.md`, qui contient les questions et l'échelle DICP.
+Ton interlocuteur est le porteur métier. Il ne lit pas de YAML et ne connaît pas le vocabulaire de la sécurité. Lis d'abord `references/questions.md`, qui contient les questions, la façon de décrire les interconnexions et l'échelle DICP.
 
 1. Si la fiche existe, lis-la : il s'agit d'une requalification. Repars de son contenu et garde le même `code`.
-2. Mène l'entretien un thème à la fois, dans cet ordre : identité, utilisateurs et exposition, données personnelles, puis les quatre axes DICP. Reformule chaque réponse et fais-la confirmer avant de passer au thème suivant.
-3. Pour chaque axe DICP, propose un niveau d'après l'échelle, avec en motif la réponse du métier dans ses mots. Quand il hésite entre deux niveaux, retiens le plus élevé et dis-le dans le motif.
-4. Écris la fiche sans `exigences` ni `validation`, puis lance `valider`. Corrige les erreurs.
-5. Lance `calculer` et recopie tel quel le bloc `exigences` qu'il affiche. Valide de nouveau.
-6. Lance `rendre` et montre le rendu **tel quel**, sans le résumer : le métier confirme le contenu du fichier, pas ta description. Reprends avec lui les avertissements du script.
-7. Explique la suite : la fiche ne vaut rien tant que l'équipe infra ne l'a pas validée. Demande au métier s'il utilise GitLab :
+2. Mène l'entretien un thème à la fois, dans cet ordre : identité, utilisateurs et exposition, interconnexions, données personnelles, puis les quatre axes DICP. Reformule chaque réponse et fais-la confirmer avant de passer au thème suivant.
+3. Pour chaque interconnexion, note ce que le métier sait et mets `a_verifier` pour le reste : tu ne devines ni la nature, ni les droits. La sensibilité du système reste `a_verifier`, sauf si un référentiel des applications la donne : c'est l'équipe infra qui tranche. Préviens le métier que ce qui reste à vérifier compte au plus haut dans le palier du brouillon.
+4. Pour chaque axe DICP, propose un niveau d'après l'échelle, avec en motif la réponse du métier dans ses mots. Quand il hésite entre deux niveaux, retiens le plus élevé et dis-le dans le motif.
+5. Écris la fiche sans `exigences` ni `validation`, puis lance `valider`. Corrige les erreurs.
+6. Lance `calculer` et recopie tel quel le bloc `exigences` qu'il affiche. Valide de nouveau.
+7. Lance `rendre` et montre le rendu **tel quel**, sans le résumer : le métier confirme le contenu du fichier, pas ta description. Reprends avec lui les avertissements du script.
+8. Explique la suite : la fiche ne vaut rien tant que l'équipe infra ne l'a pas validée. Demande au métier s'il utilise GitLab :
    - si oui, il propose la fiche par une demande de fusion sur le dépôt de l'équipe infra ;
    - sinon, il ouvre un ticket auprès de l'équipe infra. Enregistre le rendu à côté de la fiche (même nom, extension `.md`) : il le colle dans le corps du ticket et joint la fiche YAML.
 
@@ -66,9 +67,10 @@ Ton interlocuteur est un membre de l'équipe infra. Demande-lui son nom et son e
    - les avertissements et les erreurs du script ;
    - un motif qui ne justifie pas le niveau donné ;
    - les signes de sous-évaluation listés dans `references/questions.md`.
-4. Le valideur peut corriger une réponse. Dans ce cas, relance `calculer` et remplace le bloc `exigences`. Il peut aussi relever le palier ou ajouter un contrôle ; demande-lui alors une justification et écris-la dans `exigences.justification`. Il ne peut pas descendre sous le palier calculé.
-5. Demande explicitement : la fiche est-elle juste ? La valides-tu ? Après un oui, ajoute la section `validation` : version précédente + 1, ou 1 ; `renseigne_par` est la personne du métier qui a répondu ; `valide_par` est le valideur ; la date est celle du jour. Lance `valider` de nouveau.
-6. Rappelle la suite : la fiche entre dans le dépôt de l'équipe infra, par la fusion de la demande ou, si elle est arrivée par ticket, par un dépôt de l'équipe infra elle-même, qui clôt ensuite le ticket. Une copie est envoyée à l'auteur pour le pré-contrôle.
+4. Complète avec le valideur chaque interconnexion : zone, nature, droits, et sensibilité du système, d'après le référentiel des applications s'il existe, sinon d'après l'équipe infra. Il ne doit plus rester de `a_verifier`. Rappelle que cette liste est celle des comptes de service et des droits que l'équipe infra créera pour l'application : ce qui n'y figure pas n'aura pas de compte.
+5. Le valideur peut corriger une réponse. Dans ce cas, relance `calculer` et remplace le bloc `exigences`. Il peut aussi relever le palier ou ajouter un contrôle ; demande-lui alors une justification et écris-la dans `exigences.justification`. Il ne peut pas descendre sous le palier calculé.
+6. Demande explicitement : la fiche est-elle juste ? La valides-tu ? Après un oui, ajoute la section `validation` : version précédente + 1, ou 1 ; `renseigne_par` est la personne du métier qui a répondu ; `valide_par` est le valideur ; la date est celle du jour. Lance `valider` de nouveau.
+7. Rappelle la suite : la fiche entre dans le dépôt de l'équipe infra, par la fusion de la demande ou, si elle est arrivée par ticket, par un dépôt de l'équipe infra elle-même, qui clôt ensuite le ticket. Une copie est envoyée à l'auteur pour le pré-contrôle.
 
 ## Limites
 

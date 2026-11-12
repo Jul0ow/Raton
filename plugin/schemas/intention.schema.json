@@ -95,6 +95,13 @@
         "properties": {
           "id": { "$ref": "#/$defs/id_echange" },
           "partenaire": { "$ref": "#/$defs/texte_court" },
+          "interconnexions": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "type": "string", "pattern": "^I[0-9]{2}$" },
+            "description": "Interconnexions de la fiche de qualification par lesquelles passe l'échange. Facultatif pour le schéma ; qualification.py signale un échange qui n'en cite aucune."
+          },
           "sens": {
             "enum": ["recoit", "envoie", "les_deux"],
             "description": "Sens des données, vu de l'application. Le sens des connexions est porté par la matrice de flux."

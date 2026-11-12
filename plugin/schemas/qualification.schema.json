@@ -5,7 +5,7 @@
   "description": "Classe une application : exposition, utilisateurs, données personnelles, besoins DICP. Renseignée par le métier, validée par l'équipe infra. Le palier d'exigence et les contrôles obligatoires en découlent par une règle déterministe (qualification.py calculer).",
   "type": "object",
   "additionalProperties": false,
-  "required": ["format", "application", "exposition", "utilisateurs", "donnees_personnelles", "dicp"],
+  "required": ["format", "application", "exposition", "utilisateurs", "interconnexions", "donnees_personnelles", "dicp"],
   "dependentRequired": { "validation": ["exigences"] },
   "properties": {
     "format": { "const": "raton/qualification/v0" },
@@ -30,7 +30,7 @@
 
     "exposition": {
       "enum": ["interne", "externe"],
-      "description": "externe : joignable depuis un réseau que l'entreprise ne maîtrise pas (Internet, réseau d'interconnexion avec un partenaire, extranet), même derrière une authentification."
+      "description": "Accès entrant. externe : joignable depuis un réseau que l'entreprise ne maîtrise pas (Internet, réseau d'interconnexion avec un partenaire, extranet), même derrière une authentification. Une interconnexion de zone externe compte aussi comme une exposition externe."
     },
 
     "utilisateurs": {
@@ -46,6 +46,34 @@
           "description": "interne : salariés ; externe : personnes extérieures identifiées (clients, fournisseurs, partenaires) ; public : n'importe qui, sans compte nominatif, ce qui suppose une exposition externe."
         },
         "effectif": { "type": "integer", "minimum": 1, "description": "Nombre d'utilisateurs, ordre de grandeur." }
+      }
+    },
+
+    "interconnexions": {
+      "description": "Systèmes que l'application ne possède pas et avec lesquels elle communique : applications, outils et bases de l'entreprise, services extérieurs. Ni ses propres stockages, ni les services d'infrastructure communs (SSO, gestionnaire de secrets, journalisation, supervision). Liste éventuellement vide.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "systeme", "usage", "zone", "nature", "acces", "sensible"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^I[0-9]{2}$" },
+          "systeme": { "$ref": "#/$defs/texte_court" },
+          "usage": { "$ref": "#/$defs/texte_court", "description": "Ce que l'application y fait, dans les mots du métier." },
+          "zone": {
+            "enum": ["interne", "externe", "a_verifier"],
+            "description": "externe : hors de l'entreprise, ou joint par un réseau qu'elle ne maîtrise pas (interconnexion avec un partenaire)."
+          },
+          "nature": { "enum": ["api", "base_de_donnees", "fichiers", "courriel", "autre", "a_verifier"] },
+          "acces": {
+            "enum": ["lecture", "ecriture", "administration", "a_verifier"],
+            "description": "lecture : consulte ; ecriture : crée, modifie, supprime ou déclenche une action ; administration : gère le système lui-même (comptes, droits, configuration)."
+          },
+          "sensible": {
+            "enum": ["oui", "non", "a_verifier"],
+            "description": "Sensibilité du système cible : selon le référentiel des applications s'il existe, sinon selon l'équipe infra."
+          }
+        }
       }
     },
 

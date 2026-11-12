@@ -53,16 +53,19 @@ fonctions:
 echanges:
   - id: E01
     partenaire: Annuaire de l'entreprise
+    interconnexions: [I01]
     sens: recoit
     donnees: [D03]
     motif: savoir quels salariés dépendent d'un manager
   - id: E02
     partenaire: Service d'IA externe (fournisseur à préciser)
+    interconnexions: [I02]
     sens: les_deux
     donnees: [D02, D01]
     motif: lire le montant et la date sur les justificatifs
   - id: E03
     partenaire: Logiciel de comptabilité
+    interconnexions: [I03]
     sens: envoie
     donnees: [D01]
     motif: export des notes validées

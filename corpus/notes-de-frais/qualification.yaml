@@ -15,6 +15,29 @@ utilisateurs:
   populations: [interne]
   effectif: 2000
 
+interconnexions:
+  - id: I01
+    systeme: Annuaire de l'entreprise
+    usage: savoir quels salariés dépendent d'un manager
+    zone: interne
+    nature: api
+    acces: lecture
+    sensible: oui
+  - id: I02
+    systeme: Service d'IA externe (fournisseur à préciser)
+    usage: lire le montant et la date sur les justificatifs
+    zone: externe
+    nature: api
+    acces: ecriture
+    sensible: non
+  - id: I03
+    systeme: Logiciel de comptabilité
+    usage: exporter les notes validées
+    zone: interne
+    nature: api
+    acces: ecriture
+    sensible: oui
+
 donnees_personnelles:
   niveau: oui
   personnes: [salariés]
@@ -35,7 +58,7 @@ dicp:
     motif: savoir qui a validé chaque note, pour les contrôles comptables et fiscaux
 
 exigences:
-  palier: 2
+  palier: 3
   controles:
     - dat
     - matrice_flux
@@ -48,6 +71,7 @@ exigences:
     - revue_informee
     - juge
     - revue_aveugle
+    - analyse_dynamique
 
 validation:
   version: 1

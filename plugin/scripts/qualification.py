@@ -21,7 +21,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-from raton_formats import ErreurFormat, charger, erreurs_schema, md_inerte
+from raton_formats import ErreurFormat, charger, doublons, erreurs_schema, md_inerte
 
 FORMAT = "raton/qualification/v0"
 
@@ -32,6 +32,17 @@ FORMAT = "raton/qualification/v0"
 PALIER_UTILISATEURS = {"interne": 1, "externe": 2, "public": 3}
 PALIER_DONNEES = {"non": 1, "oui": 2, "sensibles": 3}
 PALIER_DICP = {1: 1, 2: 1, 3: 2, 4: 3}
+# Interconnexions : seuls comptent les droits, la sensibilité du système cible et la
+# zone ; le nombre de systèmes n'intervient pas. Une zone externe compte comme une
+# exposition externe. Ce qui reste à vérifier compte au plus haut.
+PALIER_ACCES = {  # (accès, système sensible) → palier
+    ("lecture", False): 1,
+    ("lecture", True): 2,
+    ("ecriture", False): 2,
+    ("ecriture", True): 3,
+    ("administration", False): 3,
+    ("administration", True): 3,
+}
 PALIER_MAX = 3
 NOMS_PALIERS = {1: "socle", 2: "renforcé", 3: "élevé"}
 
@@ -50,7 +61,6 @@ CONTROLES = (
     ("revue_aveugle", 2, "Revue aveugle par agents"),
     ("analyse_dynamique", 3, "Analyse dynamique en bac à sable"),
 )
-_LIBELLES_CONTROLES = {c: lib for c, _, lib in CONTROLES}
 
 AXES = (
     ("disponibilite", "Disponibilité"),
@@ -90,29 +100,51 @@ def controles_obligatoires(palier):
     return [c for c, p, _ in CONTROLES if p <= palier]
 
 
+def palier_interconnexion(i):
+    acces = "administration" if i["acces"] == "a_verifier" else i["acces"]
+    return PALIER_ACCES[(acces, i["sensible"] != "non")]
+
+
+def zone_externe(i):
+    return i["zone"] != "interne"
+
+
+def a_verifier(i):
+    return [c for c in ("zone", "nature", "acces", "sensible") if i[c] == "a_verifier"]
+
+
 @dataclass
 class Calcul:
     palier: int
-    base: int  # avant l'exposition
+    base: int  # avant l'exposition externe
     criteres: list  # (critère, réponse, palier)
-    externe: bool
+    causes_externes: list  # « exposition » et identifiants des interconnexions externes
+
+    @property
+    def externe(self):
+        return bool(self.causes_externes)
 
 
 def calculer(fiche):
-    """Palier calculé : le plus élevé des critères, plus un si l'application est
-    exposée à un réseau extérieur à l'entreprise, sans dépasser le palier maximal."""
+    """Palier calculé : le plus élevé des critères, plus un en cas d'exposition externe
+    (accès depuis un réseau extérieur ou interconnexion avec un tel réseau), sans
+    dépasser le palier maximal."""
     pop = fiche["utilisateurs"]["populations"]
     niveau = fiche["donnees_personnelles"]["niveau"]
     criteres = [
         ("Utilisateurs", ", ".join(pop), max(PALIER_UTILISATEURS[p] for p in pop)),
         ("Données personnelles", niveau, PALIER_DONNEES[niveau]),
     ]
+    inter = fiche["interconnexions"]
+    p_inter = max((palier_interconnexion(i) for i in inter), default=1)
+    determinantes = [i["id"] for i in inter if palier_interconnexion(i) == p_inter]
+    criteres.append(("Interconnexions", ", ".join(determinantes) or "aucune", p_inter))
     for axe, libelle in AXES:
         n = fiche["dicp"][axe]["niveau"]
         criteres.append((libelle, n, PALIER_DICP[n]))
     base = max(p for *_, p in criteres)
-    externe = fiche["exposition"] == "externe"
-    return Calcul(min(PALIER_MAX, base + 1) if externe else base, base, criteres, externe)
+    causes = (["exposition"] if fiche["exposition"] == "externe" else []) + [i["id"] for i in inter if zone_externe(i)]
+    return Calcul(min(PALIER_MAX, base + 1) if causes else base, base, criteres, causes)
 
 
 # --- Validation --------------------------------------------------------------
@@ -132,6 +164,14 @@ def coherence(fiche):
 
     if "public" in fiche["utilisateurs"]["populations"] and fiche["exposition"] != "externe":
         erreurs.append("utilisateurs : un public sans compte suppose une exposition externe")
+
+    erreurs += doublons("interconnexions", fiche["interconnexions"])
+    for i in fiche["interconnexions"]:
+        champs = a_verifier(i)
+        if champs and validee:
+            erreurs.append(f"interconnexion {i['id']} : {', '.join(champs)} à vérifier ; une fiche validée ne peut pas laisser ce point ouvert")
+        elif champs:
+            avert.append(f"interconnexion {i['id']} : {', '.join(champs)} à vérifier par l'équipe infra ; compté au plus haut en attendant")
 
     dp = fiche["donnees_personnelles"]
     conf = fiche["dicp"]["confidentialite"]["niveau"]
@@ -171,9 +211,10 @@ _ORDRE_DONNEES = {"non": 0, "oui": 1, "sensibles": 2}
 
 
 def recoupements(fiche, intention):
-    """Ce que l'intention atteste et que la fiche sous-évalue. Chaque écart est une
-    erreur : la qualification choisit les contrôles, elle ne peut pas être en deçà."""
-    res = []
+    """Ce que l'intention atteste et que la fiche sous-évalue : chaque écart est une
+    erreur, car la qualification choisit les contrôles et borne les droits. Renvoie
+    (erreurs, avertissements)."""
+    res, avert = [], []
     externes = [p["id"] for p in intention["profils"] if p["population"] == "externe"]
     if externes and not set(fiche["utilisateurs"]["populations"]) & {"externe", "public"}:
         res.append(
@@ -188,7 +229,28 @@ def recoupements(fiche, intention):
             f"données personnelles : l'intention en déclare de niveau « {niveau_i} » ({', '.join(ids)}), "
             f"la fiche « {niveau_q} »"
         )
-    return res
+
+    inter = {i["id"]: i for i in fiche["interconnexions"]}
+    citees = set()
+    for e in intention["echanges"]:
+        nom = f"échange {e['id']} ({e['partenaire']})"
+        refs = e.get("interconnexions", [])
+        citees.update(refs)
+        if not refs:
+            res.append(f"{nom} : ne renvoie à aucune interconnexion de la fiche")
+        for r in refs:
+            if r not in inter:
+                res.append(f"{nom} : renvoie à {r}, absente de la fiche")
+        connues = [inter[r] for r in refs if r in inter]
+        if e["sens"] != "recoit" and connues and all(i["acces"] == "lecture" for i in connues):
+            res.append(f"{nom} : l'application envoie des données par {', '.join(i['id'] for i in connues)}, que la fiche déclare en lecture seule")
+    for i in fiche["interconnexions"]:
+        if i["id"] not in citees:
+            avert.append(
+                f"interconnexion {i['id']} ({i['systeme']}) : aucun échange de l'intention ne la cite ; "
+                "si elle ne sert pas, elle ne doit pas recevoir de droits"
+            )
+    return res, avert
 
 
 def valider_document(fiche, intention=None):
@@ -198,7 +260,8 @@ def valider_document(fiche, intention=None):
         return erreurs, []
     erreurs, avert = coherence(fiche)
     if intention is not None:
-        erreurs += recoupements(fiche, intention)
+        err_r, av_r = recoupements(fiche, intention)
+        erreurs, avert = erreurs + err_r, avert + av_r
     return erreurs, avert
 
 
@@ -216,6 +279,21 @@ def charger_intention(chemin):
 _EXPOSITION = {"interne": "réseau de l'entreprise seulement", "externe": "réseau extérieur à l'entreprise"}
 _POPULATIONS = {"interne": "salariés", "externe": "personnes extérieures identifiées", "public": "public sans compte"}
 _DONNEES = {"non": "aucune, hors identité des utilisateurs", "oui": "oui", "sensibles": "oui, dont des données sensibles"}
+_VALEURS = {  # libellés des valeurs des interconnexions
+    "a_verifier": "à vérifier",
+    "ecriture": "écriture",
+    "api": "API",
+    "base_de_donnees": "base de données",
+}
+
+
+def _valeur(v):
+    return _VALEURS.get(v, v)
+
+
+def _causes_externes(calc):
+    causes = ["accès depuis l'extérieur" if c == "exposition" else f"interconnexion {c}" for c in calc.causes_externes]
+    return ", ".join(causes)
 
 
 def _palier(p):
@@ -250,17 +328,37 @@ def rendre(fiche):
         "",
         "| Critère | Réponse | Palier |",
         "|---|---|---|",
-        f"| Exposition | {_EXPOSITION[fiche['exposition']]} | {'un palier de plus' if calc.externe else '—'} |",
+        f"| Exposition | {_EXPOSITION[fiche['exposition']]} | {'un palier de plus' if fiche['exposition'] == 'externe' else '—'} |",
         f"| Utilisateurs | {', '.join(_POPULATIONS[p] for p in u['populations'])} ; environ {u['effectif']} | {paliers['Utilisateurs']} |",
         f"| Données personnelles | {donnees} | {paliers['Données personnelles']} |",
     ]
+
+    lignes += ["", "## Interconnexions", ""]
+    inter = fiche["interconnexions"]
+    if inter:
+        lignes += [
+            "| Système | Usage | Zone | Nature | Accès | Système sensible | Palier |",
+            "|---|---|---|---|---|---|---|",
+        ]
+        for i in inter:
+            zone = _valeur(i["zone"]) + (" : un palier de plus" if zone_externe(i) else "")
+            lignes.append(
+                f"| {md_inerte(i['systeme'])} ({i['id']}) | {md_inerte(i['usage'])} | {zone} | {_valeur(i['nature'])} "
+                f"| {_valeur(i['acces'])} | {_valeur(i['sensible'])} | {palier_interconnexion(i)} |"
+            )
+        if any(a_verifier(i) for i in inter):
+            lignes += ["", "Ce qui reste à vérifier compte au plus haut : zone externe, administration, système sensible."]
+    else:
+        lignes.append("Aucune interconnexion avec un autre système.")
 
     lignes += ["", "## Besoins de sécurité (DICP)", "", "| Axe | Niveau | Motif | Palier |", "|---|---|---|---|"]
     for axe, libelle in AXES:
         b = fiche["dicp"][axe]
         lignes.append(f"| {libelle} | {b['niveau']} : {ECHELLE[axe][b['niveau']]} | {md_inerte(b['motif'])} | {paliers[libelle]} |")
 
-    regle = "le plus élevé des critères" + (", plus un pour l'exposition externe" if calc.externe else "")
+    regle = "le plus élevé des critères"
+    if calc.externe:
+        regle += f", plus un pour l'exposition externe ({_causes_externes(calc)})"
     lignes += ["", "## Palier d'exigence", "", f"- Palier calculé : {_palier(calc.palier)}, {regle}."]
     if ex is None:
         lignes.append("- Palier retenu : pas encore fixé.")
@@ -315,7 +413,10 @@ def _cmd_calculer(args):
     calc = calculer(_charger_conforme(Path(args.fiche)))
     for critere, reponse, palier in calc.criteres:
         print(f"{critere} : {reponse} → palier {palier}")
-    print(f"Exposition : {'externe → un palier de plus' if calc.externe else 'interne → aucun palier de plus'}")
+    if calc.externe:
+        print(f"Exposition externe : {_causes_externes(calc)} → un palier de plus")
+    else:
+        print("Exposition interne, aucune interconnexion externe → aucun palier de plus")
     print(f"Palier calculé : {_palier(calc.palier)}")
     print()
     print("exigences:")

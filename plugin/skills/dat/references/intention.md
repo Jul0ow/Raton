@@ -45,6 +45,8 @@ C'est le thème le plus important pour la revue : un échange oublié ici devien
 
 Pour chaque échange : avec quel partenaire, dans quel sens vont les informations (l'application reçoit, envoie, ou les deux), lesquelles, et pourquoi. Un partenaire dont le nom n'est pas connu se note tel quel : « service d'IA externe (fournisseur à préciser) ».
 
+Rattache ensuite chaque échange aux interconnexions de la fiche de qualification par lesquelles il passe (`interconnexions: [I01]`). Si un échange ne correspond à aucune interconnexion, écris-le sans ce champ et dis à l'utilisateur que la fiche est incomplète : il faut faire requalifier l'application par l'équipe infra. Tu ne modifies jamais la fiche. Une interconnexion qu'aucun échange ne cite mérite aussi une question : l'échange a-t-il été oublié, ou l'interconnexion est-elle inutile ?
+
 L'authentification par le compte de l'entreprise n'est pas un échange : la partie technique la décrit.
 
 ### Exclusions (`exclusions`)
@@ -84,7 +86,7 @@ fonctions:
     donnees: { lit: [D01], ecrit: [D01] }
     echanges: [E01]
 echanges:
-  - { id: E01, partenaire: …, sens: envoie, donnees: [D01], motif: … }
+  - { id: E01, partenaire: …, interconnexions: [I01], sens: envoie, donnees: [D01], motif: … }
 exclusions:
   - { id: X01, libelle: … }
 # validation : ajoutée seulement après accord explicite du valideur

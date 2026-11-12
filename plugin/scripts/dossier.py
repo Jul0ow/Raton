@@ -223,8 +223,10 @@ def rendre_intention(doc):
     if doc["echanges"]:
         lignes += ["| Partenaire | Sens | Données | Motif |", "|---|---|---|---|"]
         for e in doc["echanges"]:
+            refs = f" ; interconnexion {', '.join(e['interconnexions'])}" if e.get("interconnexions") else ""
             lignes.append(
-                f"| {_cell(e['partenaire'])} ({e['id']}) | l'application {sens[e['sens']]} | {noms(e['donnees'])} | {_cell(e['motif'])} |"
+                f"| {_cell(e['partenaire'])} ({e['id']}{refs}) | l'application {sens[e['sens']]} "
+                f"| {noms(e['donnees'])} | {_cell(e['motif'])} |"
             )
     else:
         lignes.append("Aucun échange avec un autre système.")

@@ -38,10 +38,22 @@ def minimale(**kw):
     f["donnees_personnelles"] = {"niveau": "non"}
     for axe, _ in q.AXES:
         f["dicp"][axe] = {"niveau": 1, "motif": "sans enjeu"}
+    f["interconnexions"] = []
     f["exigences"] = {"palier": 1, "controles": q.controles_obligatoires(1)}
     for cle, valeur in kw.items():
         f[cle] = valeur
     return f
+
+
+def palier_2():
+    """Fiche du corpus réduite à l'annuaire, lu : palier 2, au minimum."""
+    f = fiche()
+    f["interconnexions"] = f["interconnexions"][:1]
+    return avec_exigences_calculees(f)
+
+
+def interconnexion(id_="I09", zone="interne", acces="lecture", sensible="non", nature="api"):
+    return {"id": id_, "systeme": "Outil", "usage": "usage", "zone": zone, "nature": nature, "acces": acces, "sensible": sensible}
 
 
 def avec_exigences_calculees(f):
@@ -58,8 +70,8 @@ class TestCorpusEtDoc(unittest.TestCase):
 
     def test_palier_du_corpus(self):
         calc = q.calculer(fiche())
-        self.assertEqual((calc.palier, calc.base, calc.externe), (2, 2, False))
-        self.assertEqual(fiche()["exigences"]["controles"], q.controles_obligatoires(2))
+        self.assertEqual((calc.palier, calc.base, calc.causes_externes), (3, 3, ["I02"]))
+        self.assertEqual(fiche()["exigences"]["controles"], q.controles_obligatoires(3))
 
     def test_exemple_de_la_doc_identique_au_corpus(self):
         blocs = re.findall(r"```yaml\n(.*?)```", DOC.read_text(encoding="utf-8"), re.S)
@@ -117,6 +129,25 @@ class TestCalcul(unittest.TestCase):
         f["donnees_personnelles"]["niveau"] = "sensibles"
         self.assertEqual(self.palier(f), 3)
 
+    def test_interconnexions_droits_et_sensibilite(self):
+        for (acces, sensible), attendu in q.PALIER_ACCES.items():
+            f = minimale(interconnexions=[interconnexion(acces=acces, sensible="oui" if sensible else "non")])
+            self.assertEqual(self.palier(f), attendu, (acces, sensible))
+
+    def test_nombre_d_interconnexions_sans_effet(self):
+        f = minimale(interconnexions=[interconnexion(f"I{n:02}") for n in range(1, 21)])
+        self.assertEqual(self.palier(f), 1)
+
+    def test_interconnexion_externe_ajoute_un_palier(self):
+        f = minimale(interconnexions=[interconnexion(zone="externe")])
+        calc = q.calculer(f)
+        self.assertEqual((calc.palier, calc.causes_externes), (2, ["I09"]))
+
+    def test_doute_compte_au_plus_haut(self):
+        self.assertEqual(self.palier(minimale(interconnexions=[interconnexion(acces="a_verifier")])), 3)
+        self.assertEqual(self.palier(minimale(interconnexions=[interconnexion(sensible="a_verifier")])), 2)
+        self.assertEqual(self.palier(minimale(interconnexions=[interconnexion(zone="a_verifier")])), 2)
+
     def test_axes_dicp(self):
         for niveau, attendu in ((1, 1), (2, 1), (3, 2), (4, 3)):
             for axe, _ in q.AXES:
@@ -152,8 +183,8 @@ class TestValidation(unittest.TestCase):
         f = fiche()
         f["exigences"] = {"palier": 1, "controles": q.controles_obligatoires(1)}
         erreurs = self.erreurs(f)
-        self.assertTrue(any("inférieur au palier calculé 2" in e for e in erreurs), erreurs)
-        self.assertTrue(any("revue_aveugle" in e for e in erreurs), erreurs)
+        self.assertTrue(any("inférieur au palier calculé 3" in e for e in erreurs), erreurs)
+        self.assertTrue(any("revue_aveugle, analyse_dynamique" in e for e in erreurs), erreurs)
 
     def test_controle_obligatoire_manquant(self):
         f = fiche()
@@ -161,7 +192,7 @@ class TestValidation(unittest.TestCase):
         self.assertTrue(any("absents : secrets" in e for e in self.erreurs(f)))
 
     def test_palier_releve_exige_justification_et_controles(self):
-        f = fiche()
+        f = palier_2()
         f["exigences"]["palier"] = 3
         erreurs = self.erreurs(f)
         self.assertTrue(any("analyse_dynamique" in e for e in erreurs), erreurs)
@@ -171,7 +202,7 @@ class TestValidation(unittest.TestCase):
         self.assertEqual(self.erreurs(f), [])
 
     def test_controle_ajoute_exige_justification(self):
-        f = fiche()
+        f = palier_2()
         f["exigences"]["controles"].append("analyse_dynamique")
         self.assertTrue(any("justification" in e for e in self.erreurs(f)))
 
@@ -239,12 +270,30 @@ class TestValidation(unittest.TestCase):
         f["exigences"]["controles"].append("revue_differentielle")
         self.assertTrue(self.erreurs(f))
 
+    def test_interconnexions_obligatoires_meme_vides(self):
+        f = minimale()
+        del f["interconnexions"]
+        self.assertTrue(self.erreurs(f))
+
+    def test_interconnexion_en_double(self):
+        f = minimale(interconnexions=[interconnexion("I01"), interconnexion("I01")])
+        self.assertTrue(any("en double I01" in e for e in self.erreurs(f)))
+
+    def test_interconnexion_a_verifier(self):
+        f = avec_exigences_calculees(minimale(interconnexions=[interconnexion(sensible="a_verifier", nature="a_verifier")]))
+        erreurs = self.erreurs(f)
+        self.assertTrue(any("I09 : nature, sensible à vérifier" in e for e in erreurs), erreurs)
+        del f["validation"]
+        erreurs, avert = q.valider_document(f)
+        self.assertEqual(erreurs, [])
+        self.assertTrue(any("I09" in a and "au plus haut" in a for a in avert), avert)
+
 
 class TestRecoupements(unittest.TestCase):
     def test_profil_externe_non_qualifie(self):
         i = intention()
         i["profils"][0]["population"] = "externe"
-        erreurs = q.recoupements(fiche(), i)
+        erreurs, _ = q.recoupements(fiche(), i)
         self.assertEqual(len(erreurs), 1)
         self.assertIn("P01", erreurs[0])
 
@@ -253,12 +302,12 @@ class TestRecoupements(unittest.TestCase):
         i["profils"][0]["population"] = "externe"
         f = fiche()
         f["utilisateurs"]["populations"] = ["interne", "externe"]
-        self.assertEqual(q.recoupements(f, i), [])
+        self.assertEqual(q.recoupements(f, i), ([], []))
 
     def test_donnees_plus_sensibles_dans_l_intention(self):
         i = intention()
         i["donnees"][1]["personnelles"] = "sensibles"
-        erreurs = q.recoupements(fiche(), i)
+        erreurs, _ = q.recoupements(fiche(), i)
         self.assertEqual(len(erreurs), 1)
         self.assertIn("D02", erreurs[0])
 
@@ -270,17 +319,61 @@ class TestRecoupements(unittest.TestCase):
     def test_surevaluation_acceptee(self):
         f = copy.deepcopy(fiche())
         f["donnees_personnelles"]["niveau"] = "sensibles"
-        self.assertEqual(q.recoupements(f, intention()), [])
+        f["interconnexions"][0]["acces"] = "administration"
+        self.assertEqual(q.recoupements(f, intention()), ([], []))
+
+    def test_echange_sans_interconnexion(self):
+        i = intention()
+        del i["echanges"][1]["interconnexions"]
+        erreurs, avert = q.recoupements(fiche(), i)
+        self.assertEqual(len(erreurs), 1)
+        self.assertIn("échange E02", erreurs[0])
+        self.assertTrue(any("I02" in a and "aucun échange" in a for a in avert), avert)
+
+    def test_echange_vers_interconnexion_inconnue(self):
+        i = intention()
+        i["echanges"][0]["interconnexions"] = ["I09"]
+        erreurs, _ = q.recoupements(fiche(), i)
+        self.assertTrue(any("I09, absente de la fiche" in e for e in erreurs), erreurs)
+
+    def test_envoi_par_une_interconnexion_en_lecture(self):
+        f = fiche()
+        f["interconnexions"][2]["acces"] = "lecture"
+        erreurs, _ = q.recoupements(f, intention())
+        self.assertEqual(len(erreurs), 1)
+        self.assertIn("E03", erreurs[0])
+        self.assertIn("lecture seule", erreurs[0])
+
+    def test_reception_par_une_interconnexion_en_lecture(self):
+        self.assertEqual(intention()["echanges"][0]["sens"], "recoit")
+        self.assertEqual(fiche()["interconnexions"][0]["acces"], "lecture")
+        self.assertEqual(q.recoupements(fiche(), intention()), ([], []))
+
+    def test_interconnexion_inutilisee(self):
+        f = fiche()
+        f["interconnexions"].append(interconnexion())
+        erreurs, avert = q.recoupements(f, intention())
+        self.assertEqual(erreurs, [])
+        self.assertTrue(any("I09" in a and "droits" in a for a in avert), avert)
+
+    def test_intention_refuse_un_identifiant_mal_forme(self):
+        i = intention()
+        i["echanges"][0]["interconnexions"] = ["X1"]
+        _, erreurs = raton_formats.erreurs_schema(i, ("raton/intention/v0",))
+        self.assertTrue(erreurs)
 
 
 class TestRendu(unittest.TestCase):
     def test_rendu_du_corpus(self):
         rendu = q.rendre(fiche())
-        self.assertIn("Palier calculé : 2 (renforcé)", rendu)
-        self.assertIn("Palier retenu : 2 (renforcé)", rendu)
+        self.assertIn("Palier calculé : 3 (élevé), le plus élevé des critères, plus un pour l'exposition externe (interconnexion I02).", rendu)
+        self.assertIn("Palier retenu : 3 (élevé)", rendu)
         self.assertIn("- Revue aveugle par agents", rendu)
-        self.assertNotIn("Analyse dynamique", rendu)
+        self.assertIn("- Analyse dynamique en bac à sable\n", rendu)
+        self.assertIn("| Logiciel de comptabilité (I03) | exporter les notes validées | interne | API | écriture | oui | 3 |", rendu)
+        self.assertIn("| externe : un palier de plus |", rendu)
         self.assertNotIn("Brouillon", rendu)
+        self.assertNotIn("reste à vérifier", rendu)
         self.assertIn("validée par Paul Lefèvre (Équipe infra)", rendu)
 
     def test_rendu_brouillon(self):
@@ -291,8 +384,17 @@ class TestRendu(unittest.TestCase):
         self.assertIn("Palier retenu : pas encore fixé", rendu)
         self.assertIn("- Revue aveugle par agents", rendu)
 
+    def test_rendu_sans_interconnexion(self):
+        self.assertIn("Aucune interconnexion avec un autre système.", q.rendre(minimale()))
+
+    def test_rendu_a_verifier(self):
+        f = minimale(interconnexions=[interconnexion(acces="a_verifier")])
+        rendu = q.rendre(f)
+        self.assertIn("| API | à vérifier | non | 3 |", rendu)
+        self.assertIn("Ce qui reste à vérifier compte au plus haut", rendu)
+
     def test_rendu_signale_les_ajouts(self):
-        f = fiche()
+        f = palier_2()
         f["exigences"]["controles"].append("analyse_dynamique")
         f["exigences"]["justification"] = "SDK inconnu"
         self.assertIn("Analyse dynamique en bac à sable (au-delà du minimum)", q.rendre(f))
@@ -301,7 +403,7 @@ class TestRendu(unittest.TestCase):
         f = fiche()
         f["exposition"] = "externe"
         rendu = q.rendre(f)
-        self.assertIn("plus un pour l'exposition externe", rendu)
+        self.assertIn("plus un pour l'exposition externe (accès depuis l'extérieur, interconnexion I02)", rendu)
         self.assertIn("| Exposition | réseau extérieur à l'entreprise | un palier de plus |", rendu)
 
     def test_rendu_neutralise_le_texte(self):
