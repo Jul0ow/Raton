@@ -150,8 +150,7 @@ flowchart LR
   classDef propose fill:#fff3bf,stroke:#e67700,color:#000
   classDef afaire fill:#f8f9fa,stroke:#868e96,color:#000,stroke-dasharray:4 3
   class M,E humain
-  class DAT,INT,TEC fait
-  class Q,QF propose
+  class Q,QF,DAT,INT,TEC fait
   class MF,EXP,PC,FLX,EXF,NP,MQ afaire
 ```
 
@@ -200,8 +199,7 @@ flowchart LR
   classDef propose fill:#fff3bf,stroke:#e67700,color:#000
   classDef afaire fill:#f8f9fa,stroke:#868e96,color:#000,stroke-dasharray:4 3
   class E,S humain
-  class RAP fait
-  class QF propose
+  class QF,RAP fait
   class DET,AG,DYN,SBOM,SYN,AVIS,DIFF afaire
 ```
 
@@ -249,7 +247,7 @@ flowchart LR
 
 | # | Skill | Qui intervient | Lit | Produit | État |
 |---|---|---|---|---|---|
-| 1 | Qualification | métier (répond), équipe infra (valide) | réponses ; référentiel des applications s'il existe, sinon l'équipe infra ; intention pour le recoupement | fiche de qualification, rangée par l'équipe infra : interconnexions, palier, contrôles obligatoires | proposé, à valider |
+| 1 | Qualification | métier (répond), équipe infra (valide) | réponses ; référentiel des applications s'il existe, sinon l'équipe infra ; intention pour le recoupement | fiche de qualification, rangée par l'équipe infra : interconnexions, palier, contrôles obligatoires | en place |
 | 2 | DAT | métier (intention), auteur avec une IA (technique) | entretien ; code pour la partie technique | `intention.yaml`, `technique.yaml` | en place |
 | 3 | Matrice de flux | auteur | intention, code | `flux.yaml`, d'où sont générées les NetworkPolicies | à faire |
 | 4 | Dossier d'exploitation | auteur, équipe infra | — | dossier d'exploitation | à faire |
@@ -269,7 +267,7 @@ Composants transverses :
 |---|---|
 | Formats intention et technique | en place |
 | Format des constats (rapport, constat, corrigé) | en place |
-| Format de la qualification et règle de calcul du palier | proposé, à valider |
+| Format de la qualification et règle de calcul du palier | en place |
 | Formats de la matrice de flux, du dossier d'exploitation et de l'avis | à faire |
 | Scripts `dossier.py`, `constats.py` et `qualification.py` | en place |
 | Image conteneur d'outillage (Semgrep, gitleaks, Trivy…) | à faire |

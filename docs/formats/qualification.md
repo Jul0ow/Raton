@@ -1,6 +1,6 @@
 # Format de la fiche de qualification
 
-Statut : **validé** le 2026-11-12 (format v0). La section [Interconnexions](#interconnexions), ajoutée le même jour d'après tes réponses, reste à relire. L'échelle DICP pourra être revue avec la PSSI.
+Statut : **validé** le 2026-11-12 (format v0), [interconnexions](#interconnexions) comprises. L'échelle DICP pourra être revue avec la PSSI.
 
 La qualification est la première étape du parcours. Elle classe l'application selon le tort qu'elle pourrait causer, puis en déduit le **palier d'exigence** et la liste des **contrôles obligatoires**. Le métier répond aux questions ; l'équipe infra valide la fiche.
 
@@ -325,4 +325,4 @@ Interconnexions, décidées le 2026-11-12 :
 - le métier décrit les interconnexions avec ses mots, l'équipe infra précise la nature et les droits ;
 - les échanges de l'intention, et plus tard les flux de la matrice, renvoient aux interconnexions.
 
-Proposé, à valider : le tableau qui donne le palier selon les droits et la sensibilité, et la règle selon laquelle ce qui reste à vérifier compte au plus haut.
+Validés aussi le 2026-11-12 : le tableau qui donne le palier selon les droits et la sensibilité, et la règle selon laquelle ce qui reste à vérifier compte au plus haut.
