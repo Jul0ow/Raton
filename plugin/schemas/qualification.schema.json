@@ -29,8 +29,8 @@
     },
 
     "exposition": {
-      "enum": ["interne", "internet"],
-      "description": "internet : joignable depuis Internet sans passer par le réseau de l'entreprise, même derrière une authentification."
+      "enum": ["interne", "externe"],
+      "description": "externe : joignable depuis un réseau que l'entreprise ne maîtrise pas (Internet, réseau d'interconnexion avec un partenaire, extranet), même derrière une authentification."
     },
 
     "utilisateurs": {
@@ -43,7 +43,7 @@
           "minItems": 1,
           "uniqueItems": true,
           "items": { "enum": ["interne", "externe", "public"] },
-          "description": "interne : salariés ; externe : personnes extérieures identifiées (clients, fournisseurs, partenaires) ; public : n'importe qui, sans compte nominatif."
+          "description": "interne : salariés ; externe : personnes extérieures identifiées (clients, fournisseurs, partenaires) ; public : n'importe qui, sans compte nominatif, ce qui suppose une exposition externe."
         },
         "effectif": { "type": "integer", "minimum": 1, "description": "Nombre d'utilisateurs, ordre de grandeur." }
       }
@@ -65,26 +65,11 @@
           "items": { "$ref": "#/$defs/texte_court" },
           "description": "Catégories de personnes concernées : salariés, clients, candidats…"
         },
-        "volume": { "type": "integer", "minimum": 1, "description": "Nombre de personnes concernées, ordre de grandeur." },
-        "registre": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["statut"],
-          "properties": {
-            "statut": {
-              "enum": ["inscrit", "a_inscrire", "a_verifier"],
-              "description": "a_verifier : le métier ne sait pas ; interdit une fois la fiche validée."
-            },
-            "reference": { "$ref": "#/$defs/texte_court", "description": "Identifiant du traitement dans le registre RGPD." }
-          },
-          "if": { "properties": { "statut": { "const": "inscrit" } } },
-          "then": { "required": ["reference"] },
-          "else": { "not": { "required": ["reference"] } }
-        }
+        "volume": { "type": "integer", "minimum": 1, "description": "Nombre de personnes concernées, ordre de grandeur." }
       },
       "if": { "properties": { "niveau": { "const": "non" } } },
       "then": { "maxProperties": 1 },
-      "else": { "required": ["personnes", "volume", "registre"] }
+      "else": { "required": ["personnes", "volume"] }
     },
 
     "dicp": {

@@ -58,7 +58,7 @@ class TestCorpusEtDoc(unittest.TestCase):
 
     def test_palier_du_corpus(self):
         calc = q.calculer(fiche())
-        self.assertEqual((calc.palier, calc.base, calc.internet), (2, 2, False))
+        self.assertEqual((calc.palier, calc.base, calc.externe), (2, 2, False))
         self.assertEqual(fiche()["exigences"]["controles"], q.controles_obligatoires(2))
 
     def test_exemple_de_la_doc_identique_au_corpus(self):
@@ -95,14 +95,14 @@ class TestCalcul(unittest.TestCase):
     def test_palier_1(self):
         self.assertEqual(self.palier(minimale()), 1)
 
-    def test_internet_ajoute_un_palier(self):
-        self.assertEqual(self.palier(minimale(exposition="internet")), 2)
+    def test_exposition_externe_ajoute_un_palier(self):
+        self.assertEqual(self.palier(minimale(exposition="externe")), 2)
         f = fiche()
-        f["exposition"] = "internet"
+        f["exposition"] = "externe"
         self.assertEqual(self.palier(f), 3)
 
-    def test_internet_plafonne(self):
-        f = minimale(exposition="internet")
+    def test_exposition_externe_plafonnee(self):
+        f = minimale(exposition="externe")
         f["utilisateurs"]["populations"] = ["public"]
         self.assertEqual(self.palier(f), 3)
 
@@ -175,11 +175,14 @@ class TestValidation(unittest.TestCase):
         f["exigences"]["controles"].append("analyse_dynamique")
         self.assertTrue(any("justification" in e for e in self.erreurs(f)))
 
-    def test_public_suppose_internet(self):
+    def test_public_suppose_exposition_externe(self):
         f = minimale()
         f["utilisateurs"]["populations"] = ["public"]
         f = avec_exigences_calculees(f)
-        self.assertTrue(any("Internet" in e for e in self.erreurs(f)))
+        self.assertTrue(any("exposition externe" in e for e in self.erreurs(f)))
+
+    def test_ancienne_valeur_internet_refusee(self):
+        self.assertTrue(self.erreurs(minimale(exposition="internet")))
 
     def test_validee_par_le_metier_refusee(self):
         for nom in ("Marie Durand", "  marie   DURAND "):
@@ -193,37 +196,21 @@ class TestValidation(unittest.TestCase):
         f["validation"]["valide_par"]["nom"] = "Marie Durand"
         self.assertTrue(any("équipe infra" in e for e in self.erreurs(f)))
 
-    def test_registre_obligatoire_avec_donnees(self):
-        f = fiche()
-        del f["donnees_personnelles"]["registre"]
-        self.assertTrue(self.erreurs(f))
+    def test_personnes_et_volume_avec_donnees(self):
+        for champ in ("personnes", "volume"):
+            f = fiche()
+            del f["donnees_personnelles"][champ]
+            self.assertTrue(self.erreurs(f), champ)
 
-    def test_registre_interdit_sans_donnees(self):
+    def test_rien_d_autre_sans_donnees(self):
         f = minimale()
-        f["donnees_personnelles"]["registre"] = {"statut": "a_inscrire"}
+        f["donnees_personnelles"]["personnes"] = ["salariés"]
         self.assertTrue(self.erreurs(f))
 
-    def test_reference_selon_statut(self):
+    def test_registre_rgpd_hors_format(self):
         f = fiche()
-        del f["donnees_personnelles"]["registre"]["reference"]
+        f["donnees_personnelles"]["registre"] = {"statut": "inscrit", "reference": "TRT-1"}
         self.assertTrue(self.erreurs(f))
-        f["donnees_personnelles"]["registre"] = {"statut": "a_inscrire", "reference": "TRT-1"}
-        self.assertTrue(self.erreurs(f))
-
-    def test_registre_a_verifier(self):
-        f = fiche()
-        f["donnees_personnelles"]["registre"] = {"statut": "a_verifier"}
-        self.assertTrue(any("registre" in e for e in self.erreurs(f)))
-        del f["validation"]
-        erreurs, avert = q.valider_document(f)
-        self.assertEqual(erreurs, [])
-        self.assertTrue(any("registre" in a for a in avert))
-
-    def test_registre_a_inscrire_signale(self):
-        f = fiche()
-        f["donnees_personnelles"]["registre"] = {"statut": "a_inscrire"}
-        self.assertEqual(self.erreurs(f), [])
-        self.assertTrue(any("à inscrire" in a for a in self.avertissements(f)))
 
     def test_signes_de_sous_evaluation(self):
         f = fiche()
@@ -310,10 +297,12 @@ class TestRendu(unittest.TestCase):
         f["exigences"]["justification"] = "SDK inconnu"
         self.assertIn("Analyse dynamique en bac à sable (au-delà du minimum)", q.rendre(f))
 
-    def test_rendu_internet(self):
+    def test_rendu_exposition_externe(self):
         f = fiche()
-        f["exposition"] = "internet"
-        self.assertIn("plus un pour l'exposition à Internet", q.rendre(f))
+        f["exposition"] = "externe"
+        rendu = q.rendre(f)
+        self.assertIn("plus un pour l'exposition externe", rendu)
+        self.assertIn("| Exposition | réseau extérieur à l'entreprise | un palier de plus |", rendu)
 
     def test_rendu_neutralise_le_texte(self):
         f = fiche()

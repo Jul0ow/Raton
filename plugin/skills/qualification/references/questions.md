@@ -2,7 +2,7 @@
 
 L'entretien sert à recueillir des faits sur l'usage et sur l'impact. Il ne s'agit pas de négocier un niveau de contrôle. Tu poses des questions concrètes, tu reformules, et tu déduis le niveau d'après l'échelle.
 
-Vocabulaire à employer : « l'application », « les personnes qui l'utilisent », « les informations ». Évite « DICP », « palier », « exposition » et « RGPD » tant que le métier ne les emploie pas lui-même.
+Vocabulaire à employer : « l'application », « les personnes qui l'utilisent », « les informations ». Évite « DICP », « palier » et « exposition » tant que le métier ne les emploie pas lui-même.
 
 ## Identité (`application`)
 
@@ -15,14 +15,13 @@ Vocabulaire à employer : « l'application », « les personnes qui l'utilisent 
 
 - Qui utilise l'application ? Seulement des salariés (`interne`) ? Des personnes extérieures qui ont un compte : clients, fournisseurs, partenaires (`externe`) ? N'importe qui, sans compte (`public`) ?
 - Combien de personnes environ ?
-- Faut-il pouvoir s'en servir hors du réseau de l'entreprise sans VPN : depuis chez soi, un téléphone, chez un client ? Si oui, `internet`. Un public sans compte implique toujours `internet`.
+- Faut-il pouvoir s'en servir depuis l'extérieur du réseau de l'entreprise : depuis Internet, chez soi sans VPN, sur un téléphone, ou depuis le réseau d'un partenaire ou d'un client, même par une interconnexion dédiée ? Si oui, `externe`. Un réseau que l'entreprise ne maîtrise pas est peu fiable, quel que soit le lien avec le partenaire. Un public sans compte implique toujours `externe`.
 
 ## Données personnelles (`donnees_personnelles`)
 
 - L'application garde-t-elle ou manipule-t-elle des informations sur des personnes : noms, coordonnées, situation, dossiers ? L'identité des personnes qui se connectent ne compte pas : toute application la connaît.
 - Sur qui portent-elles : salariés, clients, candidats, patients… ? Combien de personnes environ ?
 - Y a-t-il des informations sensibles : santé, opinions politiques, convictions religieuses, appartenance syndicale, origine, vie sexuelle, données biométriques ou génétiques, infractions ou condamnations ? Si oui, `sensibles`.
-- Le traitement est-il inscrit au registre RGPD de l'entreprise ? Si oui, sous quelle référence ? S'il sait qu'il ne l'est pas : `a_inscrire`. S'il ne sait pas : `a_verifier`.
 
 ## Besoins de sécurité (`dicp`)
 
@@ -80,7 +79,7 @@ Pose la question de chaque axe, laisse le métier répondre, puis propose le niv
 - une confidentialité de niveau 1 ou 2 pour des informations sur des personnes, des montants, des contrats ou des documents internes ;
 - une intégrité de niveau 1 ou 2 pour une application qui calcule des montants, déclenche des paiements ou prend des décisions sur des personnes ;
 - des utilisateurs « salariés seulement » alors que l'objet parle de clients, de fournisseurs ou de candidats ;
-- une exposition « interne » alors que l'usage décrit se fait en déplacement ou chez des tiers ;
+- une exposition « interne » alors que l'usage décrit se fait en déplacement, chez des tiers ou depuis le réseau d'un partenaire ;
 - un motif qui décrit un impact plus fort que le niveau choisi.
 
 ## Squelette
@@ -94,7 +93,7 @@ application:
     …
   porteur: { nom: …, entite: … }
   depot: …                     # si connu
-exposition: interne            # interne | internet
+exposition: interne            # interne | externe
 utilisateurs:
   populations: [interne]       # interne | externe | public
   effectif: …
@@ -102,7 +101,6 @@ donnees_personnelles:
   niveau: oui                  # non | oui | sensibles ; si non, rien d'autre
   personnes: [salariés]
   volume: …
-  registre: { statut: inscrit, reference: … }   # inscrit | a_inscrire | a_verifier
 dicp:
   disponibilite: { niveau: …, motif: … }
   integrite: { niveau: …, motif: … }

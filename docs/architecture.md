@@ -107,7 +107,6 @@ Le métier et l'auteur (souvent la même personne) préparent le dossier avant d
 flowchart LR
   M(("Porteur<br/>métier"))
   E(("Équipe<br/>infra"))
-  RGPD[("Registre RGPD")]
   CODE[("Dépôt de l'application<br/>au commit SHA")]
 
   Q["1 · Qualification"]
@@ -124,7 +123,6 @@ flowchart LR
   NP[/"NetworkPolicies<br/>règles d'egress"/]
   MQ[/"Liste des manques"/]
 
-  RGPD --> Q
   E -->|"valide"| Q
   M -->|"répond"| Q
   M -->|"entretien, sans le code"| DAT
@@ -251,7 +249,7 @@ flowchart LR
 
 | # | Skill | Qui intervient | Lit | Produit | État |
 |---|---|---|---|---|---|
-| 1 | Qualification | métier (répond), équipe infra (valide) | réponses, registre RGPD ; intention pour le recoupement | fiche de qualification, rangée par l'équipe infra : palier, contrôles obligatoires | proposé, à valider |
+| 1 | Qualification | métier (répond), équipe infra (valide) | réponses ; intention pour le recoupement | fiche de qualification, rangée par l'équipe infra : palier, contrôles obligatoires | proposé, à valider |
 | 2 | DAT | métier (intention), auteur avec une IA (technique) | entretien ; code pour la partie technique | `intention.yaml`, `technique.yaml` | en place |
 | 3 | Matrice de flux | auteur | intention, code | `flux.yaml`, d'où sont générées les NetworkPolicies | à faire |
 | 4 | Dossier d'exploitation | auteur, équipe infra | — | dossier d'exploitation | à faire |
@@ -284,7 +282,7 @@ Rôles retenus le 2026-11-10, comme hypothèse de travail en attendant une déci
 | Rôle | Qui | Ce qu'il fait |
 |---|---|---|
 | Porteur métier | la personne ou l'équipe métier qui a produit l'application, souvent l'auteur du code | répond à la qualification, rédige et atteste l'intention, constitue le dossier, corrige les constats |
-| Équipe de revue et exploitation | **l'équipe infra** | valide la qualification et range la fiche dans son dépôt, lance le pipeline, tranche les divergences entre relecteurs, présente l'avis au RSSI ; puis déploie l'application et applique les NetworkPolicies générées depuis la matrice de flux |
+| Équipe de revue et exploitation | **l'équipe infra** | valide la qualification (reçue par demande de fusion ou par ticket) et range la fiche dans son dépôt, lance le pipeline, tranche les divergences entre relecteurs, présente l'avis au RSSI ; puis déploie l'application et applique les NetworkPolicies générées depuis la matrice de flux |
 | Signataire | **le RSSI** | signe l'avis (Go, Go avec réserves, No-Go) sur un commit précis |
 | Mainteneurs de Raton | l'équipe qui développe la bibliothèque | construisent les cas du corpus, écrivent leurs corrigés, mesurent Raton |
 

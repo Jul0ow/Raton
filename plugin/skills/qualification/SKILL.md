@@ -52,7 +52,9 @@ Ton interlocuteur est le porteur métier. Il ne lit pas de YAML et ne connaît p
 4. Écris la fiche sans `exigences` ni `validation`, puis lance `valider`. Corrige les erreurs.
 5. Lance `calculer` et recopie tel quel le bloc `exigences` qu'il affiche. Valide de nouveau.
 6. Lance `rendre` et montre le rendu **tel quel**, sans le résumer : le métier confirme le contenu du fichier, pas ta description. Reprends avec lui les avertissements du script.
-7. Rappelle la suite : la fiche part à l'équipe infra, par exemple sous forme de demande de fusion sur son dépôt. Elle ne vaut rien tant que l'équipe infra ne l'a pas validée.
+7. Explique la suite : la fiche ne vaut rien tant que l'équipe infra ne l'a pas validée. Demande au métier s'il utilise GitLab :
+   - si oui, il propose la fiche par une demande de fusion sur le dépôt de l'équipe infra ;
+   - sinon, il ouvre un ticket auprès de l'équipe infra. Enregistre le rendu à côté de la fiche (même nom, extension `.md`) : il le colle dans le corps du ticket et joint la fiche YAML.
 
 ## Phase valider
 
@@ -65,10 +67,9 @@ Ton interlocuteur est un membre de l'équipe infra. Demande-lui son nom et son e
    - un motif qui ne justifie pas le niveau donné ;
    - les signes de sous-évaluation listés dans `references/questions.md`.
 4. Le valideur peut corriger une réponse. Dans ce cas, relance `calculer` et remplace le bloc `exigences`. Il peut aussi relever le palier ou ajouter un contrôle ; demande-lui alors une justification et écris-la dans `exigences.justification`. Il ne peut pas descendre sous le palier calculé.
-5. Si le registre RGPD est `a_verifier`, le valideur doit trancher, au besoin avec le DPO : `inscrit` avec sa référence, ou `a_inscrire`.
-6. Demande explicitement : la fiche est-elle juste ? La valides-tu ? Après un oui, ajoute la section `validation` : version précédente + 1, ou 1 ; `renseigne_par` est la personne du métier qui a répondu ; `valide_par` est le valideur ; la date est celle du jour. Lance `valider` de nouveau.
-7. Rappelle la suite : la fiche est fusionnée dans le dépôt de l'équipe infra, et une copie est envoyée à l'auteur pour le pré-contrôle.
+5. Demande explicitement : la fiche est-elle juste ? La valides-tu ? Après un oui, ajoute la section `validation` : version précédente + 1, ou 1 ; `renseigne_par` est la personne du métier qui a répondu ; `valide_par` est le valideur ; la date est celle du jour. Lance `valider` de nouveau.
+6. Rappelle la suite : la fiche entre dans le dépôt de l'équipe infra, par la fusion de la demande ou, si elle est arrivée par ticket, par un dépôt de l'équipe infra elle-même, qui clôt ensuite le ticket. Une copie est envoyée à l'auteur pour le pré-contrôle.
 
 ## Limites
 
-Le script compare les noms du valideur et de la personne qui a renseigné la fiche, mais il ne peut pas vérifier qui est vraiment derrière l'écran. La garantie vient du circuit : seule l'équipe infra fusionne dans son dépôt, et le pipeline ne lit que la fiche qui s'y trouve.
+Le script compare les noms du valideur et de la personne qui a renseigné la fiche, mais il ne peut pas vérifier qui est vraiment derrière l'écran. La garantie vient du circuit : seule l'équipe infra fait entrer une fiche dans son dépôt, et le pipeline ne lit que la fiche qui s'y trouve.

@@ -95,12 +95,12 @@ class Calcul:
     palier: int
     base: int  # avant l'exposition
     criteres: list  # (critère, réponse, palier)
-    internet: bool
+    externe: bool
 
 
 def calculer(fiche):
     """Palier calculé : le plus élevé des critères, plus un si l'application est
-    exposée à Internet, sans dépasser le palier maximal."""
+    exposée à un réseau extérieur à l'entreprise, sans dépasser le palier maximal."""
     pop = fiche["utilisateurs"]["populations"]
     niveau = fiche["donnees_personnelles"]["niveau"]
     criteres = [
@@ -111,8 +111,8 @@ def calculer(fiche):
         n = fiche["dicp"][axe]["niveau"]
         criteres.append((libelle, n, PALIER_DICP[n]))
     base = max(p for *_, p in criteres)
-    internet = fiche["exposition"] == "internet"
-    return Calcul(min(PALIER_MAX, base + 1) if internet else base, base, criteres, internet)
+    externe = fiche["exposition"] == "externe"
+    return Calcul(min(PALIER_MAX, base + 1) if externe else base, base, criteres, externe)
 
 
 # --- Validation --------------------------------------------------------------
@@ -130,8 +130,8 @@ def coherence(fiche):
     erreurs, avert = [], []
     validee = "validation" in fiche
 
-    if "public" in fiche["utilisateurs"]["populations"] and fiche["exposition"] != "internet":
-        erreurs.append("utilisateurs : un public sans compte suppose une exposition à Internet")
+    if "public" in fiche["utilisateurs"]["populations"] and fiche["exposition"] != "externe":
+        erreurs.append("utilisateurs : un public sans compte suppose une exposition externe")
 
     dp = fiche["donnees_personnelles"]
     conf = fiche["dicp"]["confidentialite"]["niveau"]
@@ -141,15 +141,6 @@ def coherence(fiche):
         if conf < 3:
             avert.append("confidentialité inférieure à 3 alors que l'application traite des données sensibles : à confirmer")
         avert.append("données sensibles : vérifier avec le DPO si une analyse d'impact (AIPD) est requise")
-    statut = dp.get("registre", {}).get("statut")
-    if statut == "a_inscrire":
-        avert.append("registre RGPD : traitement à inscrire avant la mise en production")
-    elif statut == "a_verifier":
-        message = "registre RGPD : inscription du traitement à vérifier"
-        if validee:
-            erreurs.append(message + " ; une fiche validée ne peut pas laisser ce point ouvert")
-        else:
-            avert.append(message + " par l'équipe infra ou le DPO")
 
     calc = calculer(fiche)
     ex = fiche.get("exigences")
@@ -222,10 +213,9 @@ def charger_intention(chemin):
 # --- Rendu lisible -----------------------------------------------------------
 
 
-_EXPOSITION = {"interne": "réseau de l'entreprise seulement", "internet": "Internet"}
+_EXPOSITION = {"interne": "réseau de l'entreprise seulement", "externe": "réseau extérieur à l'entreprise"}
 _POPULATIONS = {"interne": "salariés", "externe": "personnes extérieures identifiées", "public": "public sans compte"}
 _DONNEES = {"non": "aucune, hors identité des utilisateurs", "oui": "oui", "sensibles": "oui, dont des données sensibles"}
-_REGISTRE = {"inscrit": "inscrit", "a_inscrire": "à inscrire", "a_verifier": "à vérifier"}
 
 
 def _palier(p):
@@ -260,21 +250,17 @@ def rendre(fiche):
         "",
         "| Critère | Réponse | Palier |",
         "|---|---|---|",
-        f"| Exposition | {_EXPOSITION[fiche['exposition']]} | {'un palier de plus' if calc.internet else '—'} |",
+        f"| Exposition | {_EXPOSITION[fiche['exposition']]} | {'un palier de plus' if calc.externe else '—'} |",
         f"| Utilisateurs | {', '.join(_POPULATIONS[p] for p in u['populations'])} ; environ {u['effectif']} | {paliers['Utilisateurs']} |",
         f"| Données personnelles | {donnees} | {paliers['Données personnelles']} |",
     ]
-    if "registre" in dp:
-        reg = dp["registre"]
-        ref = f", référence {md_inerte(reg['reference'])}" if "reference" in reg else ""
-        lignes += ["", f"Registre RGPD : {_REGISTRE[reg['statut']]}{ref}."]
 
     lignes += ["", "## Besoins de sécurité (DICP)", "", "| Axe | Niveau | Motif | Palier |", "|---|---|---|---|"]
     for axe, libelle in AXES:
         b = fiche["dicp"][axe]
         lignes.append(f"| {libelle} | {b['niveau']} : {ECHELLE[axe][b['niveau']]} | {md_inerte(b['motif'])} | {paliers[libelle]} |")
 
-    regle = "le plus élevé des critères" + (", plus un pour l'exposition à Internet" if calc.internet else "")
+    regle = "le plus élevé des critères" + (", plus un pour l'exposition externe" if calc.externe else "")
     lignes += ["", "## Palier d'exigence", "", f"- Palier calculé : {_palier(calc.palier)}, {regle}."]
     if ex is None:
         lignes.append("- Palier retenu : pas encore fixé.")
@@ -329,7 +315,7 @@ def _cmd_calculer(args):
     calc = calculer(_charger_conforme(Path(args.fiche)))
     for critere, reponse, palier in calc.criteres:
         print(f"{critere} : {reponse} → palier {palier}")
-    print(f"Exposition : {'internet → un palier de plus' if calc.internet else 'interne → aucun palier de plus'}")
+    print(f"Exposition : {'externe → un palier de plus' if calc.externe else 'interne → aucun palier de plus'}")
     print(f"Palier calculé : {_palier(calc.palier)}")
     print()
     print("exigences:")

@@ -19,7 +19,6 @@ donnees_personnelles:
   niveau: oui
   personnes: [salariés]
   volume: 2000
-  registre: { statut: inscrit, reference: TRT-FIN-007 }
 
 dicp:
   disponibilite:

@@ -1,6 +1,6 @@
 # Format de la fiche de qualification
 
-Statut : **proposition à valider** (2026-11-10).
+Statut : **validé** le 2026-11-12 (format v0). L'échelle DICP pourra être revue avec la PSSI, et une section sur les interconnexions est en discussion.
 
 La qualification est la première étape du parcours. Elle classe l'application selon le tort qu'elle pourrait causer, puis en déduit le **palier d'exigence** et la liste des **contrôles obligatoires**. Le métier répond aux questions ; l'équipe infra valide la fiche.
 
@@ -14,7 +14,6 @@ Le schéma fait foi : [`qualification.schema.json`](../../plugin/schemas/qualifi
   - chaque niveau porte son motif, que l'équipe infra peut discuter ;
   - le script recoupe la fiche avec l'intention attestée par le métier.
 - **Poser des questions métier.** Le métier ne sait pas dire « confidentialité 3 ». Il sait en revanche dire ce qui se passe si l'application s'arrête une journée ou si ses informations circulent. Le skill pose ces questions et en déduit le niveau d'après une échelle écrite.
-- **Relier au registre RGPD.** Si l'application traite des données personnelles, la fiche donne la référence du traitement au registre, ou dit qu'il reste à l'inscrire.
 - **Tracer.** La fiche est versionnée, et elle dit qui l'a renseignée, qui l'a validée et quand. L'avis enregistre la version et l'empreinte de la fiche appliquée.
 
 ## Où vit la fiche
@@ -34,12 +33,17 @@ Elle appartient à l'équipe infra, qui la range dans un dépôt qu'elle tient, 
 
 Ce répertoire pourra aussi recevoir les avis et le registre des décisions, dont les formats restent à définir.
 
-Une demande de fusion sur ce dépôt fournit un circuit naturel :
+La fiche arrive à l'équipe infra par l'un de deux circuits, selon que le métier connaît GitLab ou non :
 
-1. le métier propose sa fiche ;
-2. l'équipe infra la relit, la corrige au besoin, la valide et la fusionne ;
-3. le pipeline reçoit le chemin de la fiche validée ;
-4. l'auteur en reçoit une copie pour le pré-contrôle (skill 13).
+| Circuit | Pour qui | Déroulé |
+|---|---|---|
+| Demande de fusion | un métier qui utilise GitLab | il propose la fiche dans le dépôt de l'équipe infra ; l'équipe infra la relit, la corrige au besoin, la valide et la fusionne |
+| Ticket | un métier qui ne connaît pas GitLab | il ouvre un ticket auprès de l'équipe infra, avec la fiche en pièce jointe et son rendu lisible dans le corps du ticket ; l'équipe infra la relit, la valide, la dépose elle-même dans son dépôt et clôt le ticket |
+
+Dans les deux cas, seule l'équipe infra fait entrer la fiche dans son dépôt. Ensuite :
+
+- le pipeline reçoit le chemin de la fiche validée ;
+- l'auteur en reçoit une copie pour le pré-contrôle (skill 13).
 
 Dans le corpus, la fiche est rangée à côté de `depot/`, et non dedans, pour la même raison.
 
@@ -48,30 +52,26 @@ Dans le corpus, la fiche est rangée à côté de `depot/`, et non dedans, pour 
 | Section | Contenu | Rempli par |
 |---|---|---|
 | `application` | code (identifiant stable, nom du répertoire), nom, objet, porteur, dépôt | métier |
-| `exposition` | `interne` ou `internet` | métier |
+| `exposition` | `interne` ou `externe` | métier |
 | `utilisateurs` | populations (`interne`, `externe`, `public`), effectif | métier |
-| `donnees_personnelles` | niveau (`non`, `oui`, `sensibles`), personnes concernées, volume, inscription au registre RGPD | métier ; l'équipe infra ou le DPO vérifie le registre |
+| `donnees_personnelles` | niveau (`non`, `oui`, `sensibles`), personnes concernées, volume | métier |
 | `dicp` | pour chacun des quatre axes : un niveau de 1 à 4 et son motif | métier, sur les questions du skill |
 | `exigences` | palier retenu, contrôles obligatoires, justification s'ils dépassent le minimum | script ; l'équipe infra peut relever |
 | `validation` | version, personne qui a renseigné la fiche, personne qui l'a validée, date | équipe infra |
 
 Définitions :
 
-- **Exposition `internet`** : l'application est joignable depuis Internet sans passer par le réseau de l'entreprise, même derrière une authentification. Une application accessible seulement par le VPN est `interne`.
+- **Exposition `externe`** : l'application est joignable depuis un réseau que l'entreprise ne maîtrise pas. C'est le cas d'Internet, mais aussi du réseau d'interconnexion avec un partenaire ou d'un extranet. Un tel réseau est traité comme peu fiable, même derrière une authentification et quel que soit le lien contractuel avec le partenaire. Une application joignable seulement depuis le réseau de l'entreprise, VPN compris, est `interne`.
 - **Utilisateurs** :
   - `interne` : les salariés ;
   - `externe` : des personnes extérieures identifiées, avec un compte nominatif (clients, fournisseurs, partenaires) ;
-  - `public` : n'importe qui, sans compte nominatif, ce qui suppose une exposition à Internet.
+  - `public` : n'importe qui, sans compte nominatif, ce qui suppose une exposition externe.
 - **Données personnelles** :
   - `non` : aucune, en dehors de l'identité des utilisateurs fournie par l'authentification. Toute application sait qui est connecté ; ce cas commun ne pèse pas sur le palier.
   - `oui` : des informations sur des personnes.
   - `sensibles` : des catégories particulières au sens de l'article 9 du RGPD (santé, opinions, appartenance syndicale, origine, convictions religieuses, vie sexuelle, données biométriques ou génétiques), ou des infractions et condamnations (article 10).
 
   L'échelle est celle du champ `personnelles` de l'intention, ce qui permet le recoupement.
-- **Registre** :
-  - `inscrit`, avec la référence du traitement ;
-  - `a_inscrire` ;
-  - `a_verifier`, quand le métier ne sait pas. Une fiche validée ne peut pas garder ce statut.
 
 La feuille de route cite la **criticité métier** parmi les critères. Ce n'est pas un critère à part : c'est ce que mesurent la disponibilité et l'intégrité, à travers l'impact d'un arrêt ou d'une erreur sur l'activité. Un critère séparé ferait répondre deux fois à la même question, avec le risque d'obtenir deux réponses différentes.
 
@@ -90,7 +90,7 @@ C'est une échelle par défaut. Elle est à aligner sur celle de la PSSI de l'en
 
 ## Calcul du palier
 
-On regarde le palier atteint par chaque critère et on retient le plus élevé. Si l'application est exposée à Internet, on monte d'un palier, sans dépasser 3.
+On regarde le palier atteint par chaque critère et on retient le plus élevé. Si l'application a une exposition externe, on monte d'un palier, sans dépasser 3.
 
 | Critère | Palier 1 | Palier 2 | Palier 3 |
 |---|---|---|---|
@@ -111,8 +111,8 @@ Contrôles obligatoires selon le palier :
 Pourquoi cette répartition :
 
 - **Le socle couvre déjà le modèle de menace principal** : données envoyées à un tiers, SDK de télémétrie, dépendance compromise. Les outils déterministes coûtent peu, la revue informée confronte le code à l'intention, et la matrice de flux bloque en production tout flux non déclaré.
-- **La revue aveugle s'ajoute au palier 2** : dès que l'application traite des données personnelles, sert des utilisateurs extérieurs, est exposée à Internet ou a un besoin DICP de niveau 3. Le relecteur informé lit le dossier et risque d'y être ancré ; l'aveugle, qui ne le voit pas, trouve ce que le dossier tait.
-- **L'analyse dynamique, la plus coûteuse, est réservée au palier 3.** Elle concerne une application ouverte au public, traitant des données sensibles, ayant un besoin de niveau 4, ou exposée à Internet alors qu'elle relève déjà du palier 2.
+- **La revue aveugle s'ajoute au palier 2** : dès que l'application traite des données personnelles, sert des utilisateurs extérieurs, a une exposition externe ou a un besoin DICP de niveau 3. Le relecteur informé lit le dossier et risque d'y être ancré ; l'aveugle, qui ne le voit pas, trouve ce que le dossier tait.
+- **L'analyse dynamique, la plus coûteuse, est réservée au palier 3.** Elle concerne une application ouverte au public, traitant des données sensibles, ayant un besoin de niveau 4, ou ayant une exposition externe alors qu'elle relève déjà du palier 2.
 
 Le dossier (DAT, matrice de flux, dossier d'exploitation) est exigé à tous les paliers, comme le prévoit le [format du DAT](dat.md#proportionnalité). La revue différentielle ne dépend pas du palier : toute nouvelle version y passe.
 
@@ -151,7 +151,6 @@ donnees_personnelles:
   niveau: oui
   personnes: [salariés]
   volume: 2000
-  registre: { statut: inscrit, reference: TRT-FIN-007 }
 
 dicp:
   disponibilite:
@@ -193,7 +192,7 @@ Le palier se calcule ainsi :
 
 - aucun critère n'atteint le palier 3 ;
 - les données personnelles et trois axes DICP donnent le palier 2 ;
-- l'application n'est pas exposée à Internet, donc rien ne s'ajoute.
+- l'exposition est interne, donc rien ne s'ajoute.
 
 Elle passe donc la revue aveugle mais pas l'analyse dynamique. Son piège, un SDK qui envoie des données à un service externe, reste à portée de la revue informée, de la revue aveugle et du juge, et l'egress généré depuis la matrice de flux le bloquerait en production.
 
@@ -210,18 +209,16 @@ Le script signale aussi, sans bloquer, les points qui méritent une question de 
 
 - une confidentialité de niveau 1 alors que l'application traite des données personnelles ;
 - une confidentialité inférieure à 3 alors qu'elle traite des données sensibles ;
-- des données sensibles, pour lesquelles il faut vérifier avec le DPO si une analyse d'impact (AIPD) est requise ;
-- un traitement qui reste à inscrire au registre.
+- des données sensibles, pour lesquelles il faut vérifier avec le DPO si une analyse d'impact (AIPD) est requise.
 
 ## Validation
 
 Une fiche validée respecte, en plus du schéma, ces règles :
 
 - les exigences ne sont pas en deçà du minimum calculé, et une justification accompagne tout dépassement ;
-- l'inscription au registre n'est plus `a_verifier` ;
 - la personne qui valide n'est ni celle qui a renseigné la fiche, ni le porteur métier.
 
-Le script ne compare que les noms : il n'écarte que le cas évident. La vraie garantie vient du circuit, puisque seule l'équipe infra fusionne dans son dépôt.
+Le script ne compare que les noms : il n'écarte que le cas évident. La vraie garantie vient du circuit, puisque seule l'équipe infra fait entrer une fiche dans son dépôt.
 
 Sans section `validation`, la fiche est un brouillon. Le schéma n'accepte de validation que si la fiche contient ses exigences.
 
@@ -242,14 +239,23 @@ python3 plugin/scripts/qualification.py rendre qualification.yaml
 
 - **Politique propre à l'entreprise.** La règle de calcul et l'échelle sont pour l'instant écrites dans `qualification.py`. Quand la question de la diffusion sera tranchée, elles passeront dans un fichier que l'entreprise ajustera sans toucher au code, et la fiche indiquera quelle version de la règle l'a calculée.
 - **Durée de validité.** Faut-il requalifier périodiquement, en plus des recoupements avec l'intention ? À voir avec l'usage.
+- **Registre RGPD.** Écarté pour l'instant : l'entreprise traite très peu de données personnelles. Le niveau de données personnelles reste un critère du palier ; le lien avec le registre pourra revenir si le besoin apparaît.
 - **Changement de fiche et avis.** Un avis vaut pour une version de la fiche. Si le palier monte, les contrôles ajoutés n'ont pas été faits et il faut une nouvelle revue. Ce point sera traité avec la synthèse et la revue différentielle.
 
-## Décisions à valider
+## Décisions
+
+Validées le 2026-11-12 :
 
 1. La fiche vit hors du dépôt de l'application, dans un dépôt tenu par l'équipe infra.
 2. La criticité métier est portée par les axes D et I du DICP, sans critère séparé.
-3. Une échelle DICP par défaut à quatre niveaux, à aligner sur la PSSI.
+3. Une échelle DICP par défaut à quatre niveaux, qui pourra être revue avec la PSSI.
 4. L'identité des utilisateurs fournie par l'authentification ne compte pas comme donnée personnelle pour le palier.
-5. Trois paliers : on retient le critère le plus élevé, plus un palier pour une exposition à Internet. L'équipe infra peut relever le palier, jamais l'abaisser.
+5. Trois paliers : on retient le critère le plus élevé, plus un palier pour une exposition externe. L'équipe infra peut relever le palier, jamais l'abaisser.
 6. La répartition des contrôles : un socle, puis la revue aveugle au palier 2, puis l'analyse dynamique au palier 3.
 7. Des recoupements avec l'intention qui bloquent quand la fiche sous-évalue.
+
+Demandés à la même relecture :
+
+- deux circuits pour transmettre la fiche, la demande de fusion ou le ticket, pour les métiers qui ne connaissent pas GitLab ;
+- une exposition `externe` plutôt que `internet` : tout réseau que l'entreprise ne maîtrise pas est peu fiable, interconnexions avec les partenaires comprises ;
+- le registre RGPD écarté pour l'instant.
