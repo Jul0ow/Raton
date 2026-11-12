@@ -70,7 +70,7 @@ class TestExemplesDeLaDoc(unittest.TestCase):
 class TestCorpusNotesDeFrais(unittest.TestCase):
     def test_dossier_valide(self):
         resultats = dossier.valider_chemin(NOTES / "depot" / ".raton")
-        self.assertEqual(len(resultats), 2)
+        self.assertEqual([f.name for f, _, _ in resultats], ["intention.yaml", "technique.yaml", "flux.yaml"])
         for fichier, erreurs, avert in resultats:
             with self.subTest(fichier=fichier.name):
                 self.assertEqual(erreurs, [])
@@ -211,7 +211,7 @@ class TestLigneDeCommande(unittest.TestCase):
     def test_valider_corpus(self):
         code, sortie = self.lancer("valider", str(NOTES / "depot" / ".raton"))
         self.assertEqual(code, 0)
-        self.assertEqual(sortie.count("✓"), 2)
+        self.assertEqual(sortie.count("✓"), 3)
 
     def test_valider_erreur(self):
         with tempfile.TemporaryDirectory() as rep:

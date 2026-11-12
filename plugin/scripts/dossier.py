@@ -6,6 +6,7 @@
 """Outils déterministes sur le dossier Raton (.raton/).
 
   dossier.py valider CHEMIN     valide un fichier du dossier, ou le répertoire .raton entier
+                                (intention, technique et matrice de flux, références croisées comprises)
   dossier.py rendre FICHIER     rend intention.yaml en Markdown lisible, pour validation humaine
   dossier.py ecarts REPERTOIRE  compare intention.yaml et technique.yaml par références
 
@@ -19,11 +20,12 @@ import argparse
 import sys
 from pathlib import Path
 
+import flux
 from raton_formats import ErreurFormat, charger, doublons, erreurs_schema
 from raton_formats import md_inerte as _cell
 from raton_formats import ids as _ids
 
-FORMATS = ("raton/intention/v0", "raton/technique/v0")
+FORMATS = ("raton/intention/v0", "raton/technique/v0", flux.FORMAT)
 
 
 # --- Validation --------------------------------------------------------------
@@ -92,35 +94,42 @@ def coherence_technique(doc, intention=None):
     return erreurs, []
 
 
-def valider_document(doc, intention=None):
-    """Renvoie (format, erreurs, avertissements)."""
+def valider_document(doc, intention=None, technique=None):
+    """Renvoie (format, erreurs, avertissements). La technique ne sert qu'à vérifier les
+    références de la matrice de flux."""
     format_, erreurs = erreurs_schema(doc, FORMATS)
     if erreurs:  # la cohérence suppose un document conforme au schéma
         return format_, erreurs, []
     if format_ == "raton/intention/v0":
         return (format_, *coherence_intention(doc))
+    if format_ == flux.FORMAT:
+        return (format_, *flux.valider_document(doc, technique, intention))
     return (format_, *coherence_technique(doc, intention))
 
 
 def valider_chemin(chemin: Path):
-    """Valide un fichier, ou un répertoire .raton (intention puis technique,
-    avec contrôle des références de l'une vers l'autre)."""
+    """Valide un fichier, ou un répertoire .raton : intention, puis technique, puis
+    matrice de flux, avec contrôle des références de chacune vers les précédentes."""
     resultats = []
     if chemin.is_dir():
-        intention = None
-        fichier_i = chemin / "intention.yaml"
-        if fichier_i.exists():
-            doc_i = charger(fichier_i)
-            fmt, err, av = valider_document(doc_i)
-            resultats.append((fichier_i, err, av))
-            if not err and fmt == "raton/intention/v0":
-                intention = doc_i
-        fichier_t = chemin / "technique.yaml"
-        if fichier_t.exists():
-            _, err, av = valider_document(charger(fichier_t), intention)
-            resultats.append((fichier_t, err, av))
+        valides = {}
+        for nom, format_ in (
+            ("intention.yaml", "raton/intention/v0"),
+            ("technique.yaml", "raton/technique/v0"),
+            ("flux.yaml", flux.FORMAT),
+        ):
+            fichier = chemin / nom
+            if not fichier.exists():
+                continue
+            doc = charger(fichier)
+            fmt, err, av = valider_document(doc, valides.get("raton/intention/v0"), valides.get("raton/technique/v0"))
+            if fmt != format_ and not err:
+                err = [f"format {fmt} inattendu dans {nom}, qui doit contenir {format_}"]
+            resultats.append((fichier, err, av))
+            if not err:
+                valides[format_] = doc
         if not resultats:
-            raise ErreurFormat(f"{chemin} : ni intention.yaml ni technique.yaml")
+            raise ErreurFormat(f"{chemin} : ni intention.yaml, ni technique.yaml, ni flux.yaml")
     else:
         _, err, av = valider_document(charger(chemin))
         resultats.append((chemin, err, av))

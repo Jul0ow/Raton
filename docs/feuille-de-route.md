@@ -66,7 +66,7 @@ Qualification → dossier (DAT, matrice de flux, dossier d'exploitation) → con
 ## Questions ouvertes
 
 - Langages et frameworks des applis à relire (règles SAST à prévoir).
-- Briques du SI à imposer : SSO (OIDC ?), gestionnaire de secrets, registre d'images, CNI (NetworkPolicy standard ou CiliumNetworkPolicy ?).
+- Briques du SI à imposer : SSO (OIDC ?), gestionnaire de secrets, registre d'images, CNI (NetworkPolicy standard ou CiliumNetworkPolicy ?). Pour le CNI, le [format de la matrice de flux](formats/flux.md#le-choix-du-cni) recommande Cilium, qui filtre les destinations par nom ; le générateur sait aussi produire des NetworkPolicy standard, avec un proxy sortant.
 - Échelle DICP et règle de calcul du palier : à aligner sur la PSSI de l'entreprise. Une proposition par défaut figure dans le [format de la qualification](formats/qualification.md).
 - Qui signe l'avis : RSSI, architecte, comité ? Hypothèse de travail retenue le 2026-11-10 : le RSSI signe ; l'équipe infra mène la revue et exploite l'application.
 - Diffusion de la bibliothèque : plugin Claude Code via une marketplace interne ?
@@ -82,3 +82,4 @@ Qualification → dossier (DAT, matrice de flux, dossier d'exploitation) → con
 - 2026-11-10 : format des constats validé ([docs/formats/constats.md](formats/constats.md)).
 - 2026-11-12 : décisions de la qualification validées, avec trois demandes : transmission de la fiche par demande de fusion ou par ticket, exposition `externe` (tout réseau que l'entreprise ne maîtrise pas, interconnexions avec les partenaires comprises) plutôt que `internet`, registre RGPD écarté pour l'instant. Ajout des interconnexions de l'application à la fiche : droits, sensibilité du système cible et zone pèsent sur le palier, une interconnexion externe compte comme une exposition externe, et les échanges de l'intention y renvoient.
 - 2026-11-12 : interconnexions validées, avec le tableau droits × sensibilité et la règle « ce qui reste à vérifier compte au plus haut ». Prochaine étape : la matrice de flux.
+- 2026-11-12 : proposition de format de la matrice de flux, à valider ([docs/formats/flux.md](formats/flux.md)) : flux dans le sens des connexions, renvois aux échanges de l'intention et aux interconnexions de la fiche, destinations par nom ou par bloc d'adresses. Fichier de plateforme tenu par l'équipe infra. Script `flux.py` : validation, écarts avec le dossier, génération des politiques réseau (refus par défaut ; Cilium ou NetworkPolicy standard avec proxy sortant). Skill matrice-flux, matrice du cas `notes-de-frais`, qui omet le SDK Sentry comme sa partie technique.

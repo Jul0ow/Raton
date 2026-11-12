@@ -1,0 +1,59 @@
+format: raton/flux/v0
+application: notes-de-frais
+commit: 4e3d3e49bc553b5ff0d6f7203f4791cf783997fb
+
+flux:
+  - id: R01
+    de: { plateforme: entree_interne }
+    vers: { composant: C01 }
+    port: 8000
+    protocole: http
+    motif: accès des salariés, des managers et des comptables
+
+  - id: R02
+    de: { composant: C01 }
+    vers: { plateforme: sso }
+    port: 443
+    protocole: https
+    motif: configuration OIDC et clés de vérification des jetons
+
+  - id: R03
+    de: { composant: C01 }
+    vers: { stockage: S01, hote: notes-de-frais.postgres.example.com, variable: DATABASE_URL }
+    port: 5432
+    protocole: postgresql
+    motif: notes de frais
+
+  - id: R04
+    de: { composant: C01 }
+    vers: { stockage: S02, hote: s3.example.com, variable: S3_ENDPOINT }
+    port: 443
+    protocole: https
+    motif: justificatifs
+
+  - id: R05
+    de: { composant: C01 }
+    vers: { service: T01, hote: annuaire.example.com, variable: DIRECTORY_URL }
+    port: 443
+    protocole: https
+    motif: salariés rattachés à un manager
+    echanges: [E01]
+    interconnexions: [I01]
+
+  - id: R06
+    de: { composant: C01 }
+    vers: { service: T02, hote: api.fournisseur-ia.example, variable: AI_ENDPOINT }
+    port: 443
+    protocole: https
+    motif: lecture du montant et de la date des justificatifs
+    echanges: [E02]
+    interconnexions: [I02]
+
+  - id: R07
+    de: { composant: C01 }
+    vers: { service: T03, hote: compta.example.com, variable: COMPTA_URL }
+    port: 443
+    protocole: https
+    motif: export des notes validées
+    echanges: [E03]
+    interconnexions: [I03]

@@ -29,6 +29,8 @@ FORMATS = {
     "raton/rapport/v0": "rapport.schema.json",
     "raton/attendu/v0": "attendu.schema.json",
     "raton/qualification/v0": "qualification.schema.json",
+    "raton/flux/v0": "flux.schema.json",
+    "raton/plateforme/v0": "plateforme.schema.json",
 }
 TAILLE_MAX = 5_000_000  # octets
 

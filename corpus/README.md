@@ -12,6 +12,7 @@ Une application réelle n'a pas de corrigé : sa revue s'arrête à l'avis.
 ## Structure d'un cas
 
 ```
+plateforme.yaml       # fichier de plateforme commun aux cas, pour générer les politiques réseau
 <cas>/
   README.md           # le piège, expliqué ; corrigé, jamais montré aux relecteurs
   attendu.yaml        # constats attendus ; corrigé, jamais montré aux relecteurs

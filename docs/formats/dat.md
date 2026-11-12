@@ -25,7 +25,7 @@ Exigences tirées des principes de la feuille de route :
 .raton/
   intention.yaml    # partie intention : rédigée ou validée par le métier
   technique.yaml    # partie technique : assistée, décrit un commit
-  flux.yaml         # matrice de flux (skill 3, format défini séparément)
+  flux.yaml         # matrice de flux : voir son format (skill 3)
 ```
 
 Le dossier vit dans `.raton/`, à la racine du dépôt de l'application, et se versionne avec le code. Un avis couvre ainsi code et dossier au même SHA, et la revue différentielle voit les changements du dossier. L'avis enregistre l'empreinte de `intention.yaml` : toute modification de ce fichier exige une nouvelle validation. Le pipeline retire `.raton/` de ce que voit le relecteur aveugle.
@@ -226,13 +226,14 @@ Intention et qualification (`qualification.py valider --intention`, voir les [re
 - ⚙ chaque échange renvoie à au moins une interconnexion de la fiche, et un échange où l'application envoie des données ne passe pas seulement par des interconnexions en lecture ;
 - ⚙ la fiche n'est pas en deçà de l'intention : profils externes, données personnelles.
 
-Intention et matrice de flux :
+Intention, technique et matrice de flux (`flux.py ecarts`, voir le [format de la matrice](flux.md#confrontation-avec-le-dossier)) :
 
-- chaque flux sortant de l'application renvoie à un échange `E` ou à un service d'infrastructure du SI (SSO, gestionnaire de secrets, journalisation), et un échange sans flux est une incohérence. La forme exacte sera fixée avec le format de la matrice (skill 3) ; les flux renverront aussi aux interconnexions de la qualification.
+- ⚙ chaque flux vers un service tiers ou un autre système renvoie à un échange `E` et à une interconnexion `I` ; les flux vers les stockages de l'application et vers les services de la plateforme (SSO, gestionnaire de secrets, journalisation, supervision) n'en ont pas besoin ;
+- ⚙ chaque échange est réalisé par au moins un flux, et chaque service tiers et chaque stockage sont atteints par un flux : sinon, les politiques réseau générées les bloqueraient.
 
 Technique déclarée et reconstruction aveugle :
 
-- l'aveugle produit `technique.yaml` et `flux.yaml` sans identifiants `P`, `F`, `D` ni `E`, puisqu'il ne voit pas l'intention : ces références sont facultatives dans le schéma ;
+- l'aveugle produit `technique.yaml` et `flux.yaml` sans identifiants `P`, `F`, `D`, `E` ni `I`, puisqu'il ne voit ni l'intention ni la fiche de qualification : ces références sont facultatives dans les schémas ;
 - le juge apparie composants, stockages, services tiers et flux, et tout élément présent d'un seul côté est une divergence escaladée à un humain ;
 - pour détecter les fonctions non décrites, l'aveugle devra aussi décrire les fonctions et les données qu'il observe. Le format sera fixé avec le skill 9 ; la piste est de reprendre celui de l'intention, pour un diff direct.
 
@@ -263,4 +264,4 @@ python3 plugin/scripts/dossier.py rendre .raton/intention.yaml
 python3 plugin/scripts/dossier.py ecarts .raton
 ```
 
-`valider` contrôle le schéma, l'unicité des identifiants et les références, internes à l'intention puis de la technique vers l'intention. Le chargeur YAML refuse les clés en double, que YAML écraserait sans rien dire : un même fichier pourrait sinon montrer une valeur à l'humain et en faire lire une autre à un outil.
+`valider` contrôle le schéma, l'unicité des identifiants et les références : internes à l'intention, de la technique vers l'intention, puis de la [matrice de flux](flux.md) vers les deux. Le chargeur YAML refuse les clés en double, que YAML écraserait sans rien dire : un même fichier pourrait sinon montrer une valeur à l'humain et en faire lire une autre à un outil.

@@ -86,7 +86,7 @@ sequenceDiagram
   E->>S: Avis argumenté
   S-->>E: Signe : Go, Go avec réserves ou No-Go
   E->>E: Déploie l'application
-  Note over E: NetworkPolicies issues<br/>de la matrice de flux :<br/>tout flux non déclaré est bloqué.<br/>Comptes de service limités<br/>aux interconnexions de la fiche.
+  Note over E: Politiques réseau générées<br/>depuis la matrice de flux :<br/>tout flux non déclaré est bloqué.<br/>Comptes de service limités<br/>aux interconnexions de la fiche.
 ```
 
 Trois moments humains structurent le parcours :
@@ -111,8 +111,8 @@ flowchart LR
 
   Q["1 · Qualification"]
   DAT["2 · DAT"]
-  EXP["4 · Dossier d'exploitation"]
   MF["3 · Matrice de flux"]
+  EXP["4 · Dossier d'exploitation"]
   PC["13 · Pré-contrôle"]
 
   QF[/"Fiche de qualification<br/>palier, contrôles obligatoires<br/>dépôt de l'équipe infra"/]
@@ -120,23 +120,28 @@ flowchart LR
   TEC[/".raton/technique.yaml"/]
   EXF[/".raton/ dossier d'exploitation"/]
   FLX[/".raton/flux.yaml"/]
-  NP[/"NetworkPolicies<br/>règles d'egress"/]
+  PLT[/"Fichier de plateforme<br/>dépôt de l'équipe infra"/]
+  NP[/"Politiques réseau<br/>générées au déploiement"/]
   MQ[/"Liste des manques"/]
 
   E -->|"valide"| Q
   M -->|"répond"| Q
   M -->|"entretien, sans le code"| DAT
   CODE -->|"phase technique"| DAT
-  M --> EXP
   Q --> QF
   DAT --> INT
   DAT --> TEC
   INT -.->|"recoupement"| QF
-  EXP --> EXF
   INT --> MF
+  TEC --> MF
   CODE --> MF
   MF --> FLX
+  FLX -.->|"renvois aux interconnexions"| QF
   FLX -->|"génère"| NP
+  E -->|"tient"| PLT
+  PLT --> NP
+  M --> EXP
+  EXP --> EXF
   QF --> PC
   INT --> PC
   TEC --> PC
@@ -151,7 +156,8 @@ flowchart LR
   classDef afaire fill:#f8f9fa,stroke:#868e96,color:#000,stroke-dasharray:4 3
   class M,E humain
   class Q,QF,DAT,INT,TEC fait
-  class MF,EXP,PC,FLX,EXF,NP,MQ afaire
+  class MF,FLX,PLT,NP propose
+  class EXP,PC,EXF,MQ afaire
 ```
 
 ### Contrôler et conclure
@@ -249,7 +255,7 @@ flowchart LR
 |---|---|---|---|---|---|
 | 1 | Qualification | métier (répond), équipe infra (valide) | réponses ; référentiel des applications s'il existe, sinon l'équipe infra ; intention pour le recoupement | fiche de qualification, rangée par l'équipe infra : interconnexions, palier, contrôles obligatoires | en place |
 | 2 | DAT | métier (intention), auteur avec une IA (technique) | entretien ; code pour la partie technique | `intention.yaml`, `technique.yaml` | en place |
-| 3 | Matrice de flux | auteur | intention, code | `flux.yaml`, d'où sont générées les NetworkPolicies | à faire |
+| 3 | Matrice de flux | auteur ; équipe infra (adresses internes, génération) | intention, technique, fiche de qualification, code | `flux.yaml`, d'où l'équipe infra génère les politiques réseau | proposé, à valider |
 | 4 | Dossier d'exploitation | auteur, équipe infra | — | dossier d'exploitation | à faire |
 | 5 | Palier Kubernetes | outils | Dockerfile, manifestes, qualification | rapport | à faire |
 | 6 | Chaîne d'approvisionnement | outils | manifestes, lockfiles, images | SBOM, rapport | à faire |
@@ -268,8 +274,10 @@ Composants transverses :
 | Formats intention et technique | en place |
 | Format des constats (rapport, constat, corrigé) | en place |
 | Format de la qualification et règle de calcul du palier | en place |
-| Formats de la matrice de flux, du dossier d'exploitation et de l'avis | à faire |
+| Formats de la matrice de flux et du fichier de plateforme | proposés, à valider |
+| Formats du dossier d'exploitation et de l'avis | à faire |
 | Scripts `dossier.py`, `constats.py` et `qualification.py` | en place |
+| Script `flux.py` : validation, écarts, génération des politiques réseau | proposé, à valider |
 | Image conteneur d'outillage (Semgrep, gitleaks, Trivy…) | à faire |
 | Corpus de test | un cas : `notes-de-frais` |
 
@@ -280,7 +288,7 @@ Rôles retenus le 2026-11-10, comme hypothèse de travail en attendant une déci
 | Rôle | Qui | Ce qu'il fait |
 |---|---|---|
 | Porteur métier | la personne ou l'équipe métier qui a produit l'application, souvent l'auteur du code | répond à la qualification, rédige et atteste l'intention, constitue le dossier, corrige les constats |
-| Équipe de revue et exploitation | **l'équipe infra** | valide la qualification (reçue par demande de fusion ou par ticket), en précisant les droits et la sensibilité des interconnexions, et range la fiche dans son dépôt ; lance le pipeline, tranche les divergences entre relecteurs, présente l'avis au RSSI ; puis déploie l'application, applique les NetworkPolicies générées depuis la matrice de flux et ne crée que les comptes de service prévus par les interconnexions de la fiche |
+| Équipe de revue et exploitation | **l'équipe infra** | valide la qualification (reçue par demande de fusion ou par ticket), en précisant les droits et la sensibilité des interconnexions, et range la fiche dans son dépôt ; lance le pipeline, tranche les divergences entre relecteurs, présente l'avis au RSSI ; puis déploie l'application, applique les politiques réseau qu'il génère depuis la matrice de flux et le fichier de plateforme qu'il tient, et ne crée que les comptes de service prévus par les interconnexions de la fiche |
 | Signataire | **le RSSI** | signe l'avis (Go, Go avec réserves, No-Go) sur un commit précis |
 | Mainteneurs de Raton | l'équipe qui développe la bibliothèque | construisent les cas du corpus, écrivent leurs corrigés, mesurent Raton |
 

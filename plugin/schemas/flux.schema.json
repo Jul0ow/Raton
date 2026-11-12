@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:raton:schema:flux:v0",
+  "title": "Matrice de flux",
+  "description": "Toutes les connexions réseau que l'application ouvre ou reçoit, à un commit donné, dans le sens des connexions : « de » ouvre la connexion vers « vers ». Les politiques réseau générées bloquent tout ce qui n'y figure pas. Les renvois aux échanges (E) et aux interconnexions (I) sont facultatifs dans le schéma : le relecteur aveugle les omet.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "application", "commit", "flux"],
+  "properties": {
+    "format": { "const": "raton/flux/v0" },
+    "application": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "maxLength": 63,
+      "description": "Code de l'application dans la fiche de qualification ; nomme aussi son namespace."
+    },
+    "commit": { "type": "string", "pattern": "^[0-9a-f]{40}$", "description": "SHA complet du commit décrit." },
+
+    "flux": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "de", "vers", "port", "protocole"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^R[0-9]{2}$" },
+          "de": { "$ref": "#/$defs/extremite", "description": "Ce qui ouvre la connexion." },
+          "vers": { "$ref": "#/$defs/extremite", "description": "Ce qui reçoit la connexion." },
+          "port": { "type": "integer", "minimum": 1, "maximum": 65535, "description": "Port de destination." },
+          "protocole": {
+            "enum": ["https", "http", "grpc", "postgresql", "mysql", "redis", "mongodb", "amqp", "kafka", "smtp", "ldaps", "ldap", "sftp", "ssh", "tcp", "udp"],
+            "description": "Protocole applicatif ; udp seul passe par UDP, tous les autres par TCP."
+          },
+          "motif": { "$ref": "#/$defs/texte_court", "description": "Pourquoi ce flux existe." },
+          "echanges": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "type": "string", "pattern": "^E[0-9]{2}$" },
+            "description": "Échanges de l'intention que ce flux réalise."
+          },
+          "interconnexions": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "type": "string", "pattern": "^I[0-9]{2}$" },
+            "description": "Interconnexions de la fiche de qualification par lesquelles il passe."
+          }
+        }
+      }
+    }
+  },
+
+  "$defs": {
+    "texte_court": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "nom_variable": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+    "hote": {
+      "type": "string",
+      "maxLength": 253,
+      "pattern": "^(\\*\\.)?([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z]([a-z0-9-]{0,61}[a-z0-9])?$",
+      "description": "Nom DNS en minuscules. Un joker « *. » en tête couvre exactement un niveau : *.exemple.com couvre a.exemple.com, mais ni exemple.com ni a.b.exemple.com."
+    },
+    "cidr": {
+      "type": "string",
+      "pattern": "^[0-9a-f:.]+/[0-9]{1,3}$",
+      "description": "Bloc d'adresses IPv4 ou IPv6, sans bit d'hôte : 10.20.30.0/28, 10.20.30.4/32."
+    },
+    "extremite": {
+      "description": "Une seule nature : composant, stockage, service, systeme ou plateforme. Un composant, ou un stockage sans adresse, est un pod du namespace de l'application ; le reste est désigné par une adresse, ou par la variable qui la porte quand elle n'est pas encore connue.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "composant": { "type": "string", "pattern": "^C[0-9]{2}$", "description": "Composant de la partie technique." },
+        "stockage": { "type": "string", "pattern": "^S[0-9]{2}$", "description": "Stockage de la partie technique : sans adresse, déployé dans le namespace de l'application." },
+        "service": { "type": "string", "pattern": "^T[0-9]{2}$", "description": "Service tiers de la partie technique." },
+        "systeme": { "$ref": "#/$defs/texte_court", "description": "Autre système, quand il n'est pas un service tiers de la partie technique : par exemple un partenaire qui appelle l'application." },
+        "plateforme": {
+          "enum": ["entree_interne", "entree_externe", "sso", "secrets", "journalisation", "supervision"],
+          "description": "Service fourni par la plateforme, que décrit le fichier de plateforme de l'équipe infra. entree_interne et entree_externe : les points d'entrée des utilisateurs, depuis le réseau de l'entreprise ou depuis l'extérieur."
+        },
+        "hote": { "$ref": "#/$defs/hote" },
+        "cidr": { "$ref": "#/$defs/cidr" },
+        "variable": { "$ref": "#/$defs/nom_variable", "description": "Variable de configuration par laquelle le code reçoit l'adresse." }
+      },
+      "oneOf": [
+        { "required": ["composant"] },
+        { "required": ["stockage"] },
+        { "required": ["service"] },
+        { "required": ["systeme"] },
+        { "required": ["plateforme"] }
+      ],
+      "not": { "required": ["hote", "cidr"] },
+      "dependentSchemas": {
+        "composant": { "maxProperties": 1 },
+        "plateforme": { "maxProperties": 1 },
+        "service": { "anyOf": [{ "required": ["hote"] }, { "required": ["cidr"] }, { "required": ["variable"] }] },
+        "systeme": { "anyOf": [{ "required": ["hote"] }, { "required": ["cidr"] }, { "required": ["variable"] }] }
+      }
+    }
+  }
+}

@@ -1,0 +1,21 @@
+format: raton/plateforme/v0
+cni: cilium                                        # cilium | standard
+etiquette_composant: app.kubernetes.io/component  # porte C01, S01… sur chaque pod
+
+dns:
+  namespace: kube-system
+  pods: { k8s-app: kube-dns }
+
+services:
+  entree_interne:
+    namespace: entree-interne
+    pods: { app.kubernetes.io/name: entree-interne }
+  entree_externe:
+    namespace: entree-externe
+    pods: { app.kubernetes.io/name: entree-externe }
+  sso: { hotes: [sso.example.com] }
+  secrets: { hotes: [coffre.example.com] }
+  journalisation: { cidrs: [10.10.20.0/24] }
+  supervision:
+    namespace: supervision
+    pods: { app.kubernetes.io/name: prometheus }

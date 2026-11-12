@@ -9,7 +9,7 @@ Application de notes de frais (FastAPI, PostgreSQL, stockage objet), conforme à
 - erreurs et traces de performance de chaque requête partent vers `ingest.de.sentry.io`, un service externe ;
 - `send_default_pii=True` y ajoute l'identité des utilisateurs (adresse IP, en-têtes, cookies), et la capture des requêtes peut embarquer le contenu des notes de frais.
 
-Ni l'intention ni la partie technique du DAT ne mentionnent ce service. Les constats attendus sont dans [`attendu.yaml`](attendu.yaml). Le dossier est cohérent avec lui-même (`dossier.py ecarts` ne trouve rien) : l'écart est entre le dossier et le code.
+Ni l'intention, ni la partie technique du DAT, ni la matrice de flux ne mentionnent ce service. Les constats attendus sont dans [`attendu.yaml`](attendu.yaml). Le dossier est cohérent avec lui-même (`dossier.py ecarts` et `flux.py ecarts` ne trouvent rien) : l'écart est entre le dossier et le code.
 
 Cas réel visé par le modèle de menace : une négligence, pas une malveillance. Le métier ignore que ce SDK existe.
 
@@ -18,7 +18,7 @@ Cas réel visé par le modèle de menace : une négligence, pas une malveillance
 - **Revue aveugle** : le SDK figure dans `requirements.txt` et dans l'initialisation. Sa reconstruction doit lister un service externe que la partie technique déclarée n'a pas ; c'est le juge qui transforme cet écart en constats (A01, A02, A04). La revue aveugle ne connaît pas le dossier : elle ne peut pas dire elle-même qu'un flux n'est pas déclaré.
 - **Revue informée** : aucun échange de l'intention ne couvre ce service, et l'exclusion X01 est violée.
 - **Analyse dynamique** : connexions DNS et HTTPS vers `*.ingest.de.sentry.io` absentes de la matrice de flux.
-- En production, l'egress généré depuis la matrice de flux bloquerait ce flux même si la revue l'avait manqué.
+- En production, les politiques réseau générées depuis la matrice de flux (`flux.py generer`) bloqueraient ce flux même si la revue l'avait manqué.
 
 ## Qualification
 
