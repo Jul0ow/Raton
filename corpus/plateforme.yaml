@@ -1,6 +1,6 @@
 format: raton/plateforme/v0
 cni: cilium                                        # cilium | standard
-etiquette_composant: app.kubernetes.io/component  # porte C01, S01… sur chaque pod
+etiquette_composant: app.kubernetes.io/component  # porte le nom du composant (api, worker…)
 
 dns:
   namespace: kube-system

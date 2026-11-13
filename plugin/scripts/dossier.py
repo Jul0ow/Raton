@@ -76,6 +76,11 @@ def coherence_technique(doc, intention=None):
     erreurs = []
     for section in ("composants", "stockages", "services_tiers"):
         erreurs += doublons(section, doc.get(section))
+    vus = {}
+    for e in doc["composants"] + doc["stockages"]:
+        if "nom" in e and e["nom"] in vus:
+            erreurs.append(f"{e['id']} : nom « {e['nom']} » déjà porté par {vus[e['nom']]} ; il étiquette les pods, il doit être unique")
+        vus.setdefault(e.get("nom"), e["id"])
     if intention is None:
         return erreurs, []
     fonctions = set(_ids(intention["fonctions"]))

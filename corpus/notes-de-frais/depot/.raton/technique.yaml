@@ -7,7 +7,7 @@ source:
   frameworks: [fastapi, sqlalchemy]
 
 composants:
-  - { id: C01, libelle: API notes de frais, role: api, technologie: python / fastapi, expose: interne, fonctions: [F01, F02, F03, F04] }
+  - { id: C01, nom: api, libelle: API notes de frais, role: api, technologie: python / fastapi, expose: interne, fonctions: [F01, F02, F03, F04] }
 
 stockages:
   - { id: S01, type: base_relationnelle, technologie: postgresql, donnees: [D01] }

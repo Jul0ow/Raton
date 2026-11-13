@@ -27,15 +27,16 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "libelle", "role", "technologie", "expose"],
+        "required": ["id", "nom", "libelle", "role", "technologie", "expose"],
         "properties": {
           "id": { "type": "string", "pattern": "^C[0-9]{2}$" },
+          "nom": { "$ref": "#/$defs/nom_cluster" },
           "libelle": { "$ref": "#/$defs/texte_court" },
           "role": { "enum": ["web", "api", "worker", "tache_planifiee", "autre"] },
           "technologie": { "$ref": "#/$defs/texte_court" },
           "expose": {
-            "enum": ["internet", "interne", "aucune"],
-            "description": "À qui le composant est accessible."
+            "enum": ["externe", "interne", "aucune"],
+            "description": "D'où le composant est joignable. externe : depuis un réseau que l'entreprise ne maîtrise pas (Internet, réseau d'un partenaire, extranet), comme l'exposition de la fiche de qualification ; interne : depuis le réseau de l'entreprise seulement ; aucune : par aucun utilisateur (worker, tâche planifiée)."
           },
           "fonctions": { "$ref": "#/$defs/refs_fonctions" }
         }
@@ -50,6 +51,7 @@
         "required": ["id", "type", "technologie"],
         "properties": {
           "id": { "type": "string", "pattern": "^S[0-9]{2}$" },
+          "nom": { "$ref": "#/$defs/nom_cluster", "description": "Obligatoire pour un stockage déployé dans le namespace de l'application : c'est l'étiquette de ses pods." },
           "type": { "enum": ["base_relationnelle", "base_documents", "cache", "stockage_objet", "fichiers", "file_messages", "autre"] },
           "technologie": { "$ref": "#/$defs/texte_court" },
           "donnees": { "$ref": "#/$defs/refs_donnees" }
@@ -133,6 +135,11 @@
 
   "$defs": {
     "texte_court": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "nom_cluster": {
+      "type": "string",
+      "pattern": "^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$",
+      "description": "Nom court et lisible, unique dans l'application (api, worker, postgres) : il étiquette les pods et nomme les politiques réseau."
+    },
     "liste_noms": {
       "type": "array",
       "uniqueItems": true,

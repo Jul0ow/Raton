@@ -1,14 +1,29 @@
 ---
 name: matrice-flux
 description: Rédige la matrice de flux (.raton/flux.yaml) d'une application soumise à la relecture Raton - toutes les connexions réseau qu'elle reçoit et qu'elle ouvre, dans le sens des connexions, reliées aux échanges de l'intention et aux interconnexions de la qualification. Les politiques réseau du déploiement en sont générées - un flux absent est bloqué. Utiliser pour écrire ou mettre à jour la matrice de flux, ou pour prévisualiser les politiques réseau d'une application.
-argument-hint: "[chemin de la fiche de qualification]"
+argument-hint: "<chemin de la fiche de qualification>"
 ---
 
 # Matrice de flux
 
 Tu aides l'auteur d'une application à rédiger sa matrice de flux, `.raton/flux.yaml`, à la racine du dépôt. Elle déclare toutes les connexions réseau de l'application, au commit courant. L'équipe infra en génère les politiques réseau du déploiement : elles refusent tout ce que la matrice ne déclare pas. Un flux oublié sera donc bloqué en production, et un flux caché sera trouvé par la revue, puis bloqué.
 
-Arguments : « $ARGUMENTS ». Ils peuvent contenir le chemin de la fiche de qualification validée, dont le métier a reçu une copie. Sans fiche, continue, mais préviens que les renvois aux interconnexions ne seront pas vérifiés.
+Arguments : « $ARGUMENTS ». Ils peuvent contenir le chemin de la fiche de qualification de l'application.
+
+**La fiche de qualification est obligatoire.** Si les arguments ne la donnent pas, demande-la avant toute autre chose, et ne passe pas à la suite sans elle : chaque flux vers un autre système doit renvoyer aux interconnexions qu'elle liste.
+
+- Le métier en a reçu une copie de l'équipe infra. S'il ne la retrouve pas, il la redemande à l'équipe infra.
+- Si l'application n'a jamais été qualifiée, arrête-toi et propose le skill `qualification`.
+- Une fiche sans section `validation` est un brouillon : arrête-toi aussi, car ses interconnexions peuvent encore changer.
+
+## Vocabulaire
+
+Ces mots reviennent dans l'entretien ; explique-les à l'utilisateur s'il ne les connaît pas.
+
+- **Interconnexion** (fiche de qualification) : un système que l'application ne possède pas et avec lequel elle communique, et les droits qu'elle y a.
+- **Échange** (intention) : les données qui passent entre l'application et ce système, dans quel sens et pourquoi, dans les mots du métier.
+- **Flux** (matrice) : une connexion réseau. Qui l'ouvre, vers quelle adresse, sur quel port. Un échange se réalise par un ou plusieurs flux ; certains flux ne réalisent aucun échange (base de données de l'application, SSO).
+- **Plateforme** : l'ensemble des services communs que l'équipe infra fournit à toutes les applications qu'elle héberge. Ce sont les points d'entrée des utilisateurs, le SSO, le gestionnaire de secrets, la journalisation, la supervision et le DNS. L'application ne les possède pas et ne les décrit pas : la matrice les nomme, et c'est le fichier de plateforme de l'équipe infra qui dit où ils se trouvent.
 
 ## Règles
 
@@ -27,10 +42,10 @@ Le schéma est la référence du format : `${CLAUDE_SKILL_DIR}/../../schemas/flu
 Les scripts sont déterministes et ne font que lire :
 
 ```bash
-python3 "${CLAUDE_SKILL_DIR}/../../scripts/flux.py" valider .raton/flux.yaml --dossier .raton [--qualification FICHE]
-python3 "${CLAUDE_SKILL_DIR}/../../scripts/flux.py" ecarts .raton/flux.yaml --dossier .raton [--qualification FICHE]
+python3 "${CLAUDE_SKILL_DIR}/../../scripts/flux.py" valider .raton/flux.yaml --dossier .raton --qualification FICHE
+python3 "${CLAUDE_SKILL_DIR}/../../scripts/flux.py" ecarts .raton/flux.yaml --dossier .raton --qualification FICHE
 python3 "${CLAUDE_SKILL_DIR}/../../scripts/flux.py" rendre .raton/flux.yaml --dossier .raton
-python3 "${CLAUDE_SKILL_DIR}/../../scripts/flux.py" generer .raton/flux.yaml --plateforme PLATEFORME
+python3 "${CLAUDE_SKILL_DIR}/../../scripts/flux.py" generer .raton/flux.yaml --dossier .raton --plateforme PLATEFORME
 python3 "${CLAUDE_SKILL_DIR}/../../scripts/dossier.py" valider .raton
 ```
 
@@ -38,7 +53,7 @@ S'il manque `pyyaml` ou `jsonschema`, remplace `python3` par `uv run`.
 
 ## Déroulé
 
-1. **Prérequis.** Il faut une intention validée et une partie technique (`.raton/intention.yaml` avec sa section `validation`, `.raton/technique.yaml`). Sinon, arrête-toi et propose le skill `dat`. Relève le commit avec `git rev-parse HEAD`. Si la partie technique décrit un autre commit, ou si `git status --porcelain` montre des modifications, préviens : la matrice décrit un commit, et la partie technique doit décrire le même.
+1. **Prérequis.** Il faut la fiche de qualification validée (voir plus haut), une intention validée et une partie technique (`.raton/intention.yaml` avec sa section `validation`, `.raton/technique.yaml`). Sans intention ni partie technique, arrête-toi et propose le skill `dat`. Chaque composant de la partie technique doit avoir un `nom` : c'est l'étiquette que porteront ses pods. Relève le commit avec `git rev-parse HEAD`. Si la partie technique décrit un autre commit, ou si `git status --porcelain` montre des modifications, préviens : la matrice décrit un commit, et la partie technique doit décrire le même.
 2. **Recenser les connexions.** Lis d'abord `references/recherche.md` : il dit où chercher. Lis le code en lecture seule. Pars de la partie technique (composants, stockages, services tiers), mais ne t'y limite pas : tout ce qu'elle a oublié doit aussi entrer dans la matrice, et dans la partie technique.
 3. **Écrire `.raton/flux.yaml`.**
    - `application` : le code de la fiche de qualification. `commit` : le SHA relevé.
@@ -46,7 +61,7 @@ S'il manque `pyyaml` ou `jsonschema`, remplace `python3` par `uv run`.
    - Pour chaque flux vers un service tiers ou un autre système, les échanges de l'intention qu'il réalise et les interconnexions de la fiche par lesquelles il passe. N'en invente pas : un flux sans échange garde ses renvois vides, c'est ce que la revue doit voir.
    - Les adresses : l'hôte quand le code ou la configuration le donnent, avec la variable qui le porte. Pour un système interne dont l'adresse n'est pas dans le dépôt, demande-la à l'utilisateur, qui la demandera à l'équipe infra si besoin. Ne devine pas une adresse : à défaut, écris la variable seule, et préviens que la matrice reste incomplète.
 4. **Valider.** Lance `flux.py valider` puis `dossier.py valider .raton`. Corrige les erreurs.
-5. **Écarts.** Lance `flux.py ecarts`, avec la fiche si tu l'as. Présente chaque écart à l'utilisateur, avec le fichier et la ligne du code en cause, et ce qu'il implique :
+5. **Écarts.** Lance `flux.py ecarts`, avec la fiche. Présente chaque écart à l'utilisateur, avec le fichier et la ligne du code en cause, et ce qu'il implique :
    - un flux sans échange, ou un service sans flux, est un flux que l'intention ne prévoit pas. L'auteur le retire du code, ou fait évoluer l'intention avec le métier ;
    - un flux sans interconnexion, une interconnexion hors échange ou une exposition sous-évaluée demandent de faire requalifier l'application par l'équipe infra ;
    - un échange sans flux, ou une adresse à fixer, signalent une matrice incomplète : les politiques générées bloqueraient l'échange.

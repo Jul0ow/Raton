@@ -9,9 +9,12 @@
   flux.py ecarts FLUX [--dossier REP] [--qualification FICHE]    flux non déclarés, échanges sans flux…
   flux.py rendre FLUX [--dossier REP]                            rendu Markdown, pour l'auteur et l'équipe infra
   flux.py egress FLUX                                            destinations hors du namespace, pour un proxy ou un pare-feu
-  flux.py generer FLUX --plateforme PLATEFORME [--namespace NS]  politiques réseau à appliquer au déploiement
+  flux.py generer FLUX --dossier REP --plateforme PLATEFORME     politiques réseau à appliquer au déploiement
+                     [--namespace NS]
 
-REP est le répertoire .raton (intention.yaml, technique.yaml). La matrice vient de l'auteur :
+REP est le répertoire .raton (intention.yaml, technique.yaml). La plateforme est l'ensemble
+des services communs que l'équipe infra fournit à toutes les applications : entrées des
+utilisateurs, SSO, secrets, journalisation, supervision, DNS. La matrice vient de l'auteur :
 c'est une donnée non fiable, que le script ne fait qu'analyser. Les politiques générées
 refusent tout par défaut : un flux absent de la matrice est bloqué.
 """
@@ -33,7 +36,7 @@ FORMAT_PLATEFORME = "raton/plateforme/v0"
 NATURES = ("composant", "stockage", "service", "systeme", "plateforme")
 PLATEFORME = {
     "entree_interne": "entrée des utilisateurs, réseau de l'entreprise",
-    "entree_externe": "entrée des utilisateurs, depuis l'extérieur",
+    "entree_externe": "entrée des utilisateurs, hors du réseau de l'entreprise",
     "sso": "SSO de l'entreprise",
     "secrets": "gestionnaire de secrets",
     "journalisation": "journalisation",
@@ -41,14 +44,17 @@ PLATEFORME = {
 }
 SEULEMENT_ORIGINE = {"entree_interne", "entree_externe"}
 SEULEMENT_DESTINATION = {"sso", "secrets"}
-# Entrée de la plateforme → valeur de composants[].expose dans la partie technique
-EXPOSITION = {"entree_interne": "interne", "entree_externe": "internet"}
-ENTREES_PERMISES = {"internet": {"entree_externe", "entree_interne"}, "interne": {"entree_interne"}, "aucune": set()}
+# Exposition d'un composant dans la partie technique → entrées de la plateforme qui
+# peuvent lui envoyer des connexions. externe : réseau que l'entreprise ne maîtrise pas,
+# Internet ou réseau d'un partenaire, comme dans la fiche de qualification.
+ENTREE_REQUISE = {"externe": "entree_externe", "interne": "entree_interne"}
+ENTREES_PERMISES = {"externe": {"entree_externe", "entree_interne"}, "interne": {"entree_interne"}, "aucune": set()}
 EN_CLAIR = {"http", "ldap"}
 PAR_PROXY = {"http", "https", "grpc"}  # protocoles qu'un proxy sortant HTTP sait relayer
 PREFIXE_MIN = {4: 16, 6: 48}  # en deçà, un bloc d'adresses est signalé comme large
 
 ETIQUETTES = {"app.kubernetes.io/managed-by": "raton"}
+NOMS_RESERVES = {"dns", "refus-par-defaut"}  # politiques communes à tout le namespace
 
 
 def transport(protocole):
@@ -150,12 +156,15 @@ def references(doc, technique=None, intention=None, qualification=None):
         }
     echanges = set(ids(intention["echanges"])) if intention is not None else None
     inter = set(ids(qualification["interconnexions"])) if qualification is not None else None
+    sans_nom = {s["id"] for s in technique["stockages"] if "nom" not in s} if technique is not None else set()
     for f in doc["flux"]:
         nom = f"flux {f['id']}"
         for ext in (f["de"], f["vers"]):
             for n, connus_n in connus.items():
                 if n in ext and ext[n] not in connus_n:
                     erreurs.append(f"{nom} : {ext[n]} absent de la partie technique")
+            if dans_le_namespace(ext) and ident(ext) in sans_nom:
+                erreurs.append(f"{nom} : {ident(ext)} est déployé dans le namespace, il lui faut un nom dans la partie technique")
         if echanges is not None:
             erreurs += [f"{nom} : échange {e} absent de l'intention" for e in f.get("echanges", []) if e not in echanges]
         if inter is not None:
@@ -232,11 +241,11 @@ def ecarts(doc, technique=None, intention=None, qualification=None):
         entrees = {}
         for f in flux:
             p = f["de"].get("plateforme")
-            if p in EXPOSITION and "composant" in f["vers"]:
+            if p in SEULEMENT_ORIGINE and "composant" in f["vers"]:
                 entrees.setdefault(f["vers"]["composant"], set()).add(p)
         for c in technique["composants"]:
             recues, expose = entrees.get(c["id"], set()), c["expose"]
-            requise = {"internet": "entree_externe", "interne": "entree_interne"}.get(expose)
+            requise = ENTREE_REQUISE.get(expose)
             if requise and requise not in recues:
                 res.append(("exposition_incoherente", f"{c['id']} ({c['libelle']}) : exposé « {expose} » d'après la partie technique, sans flux depuis {requise}"))
             for p in sorted(recues - ENTREES_PERMISES[expose]):
@@ -282,6 +291,11 @@ def rendre(doc, technique=None):
             r.append("interconnexion " + ", ".join(f["interconnexions"]))
         return " ; ".join(r) or "—"
 
+    grille = []
+    if technique is not None:
+        grille = [(c["id"], c["nom"], c["libelle"]) for c in technique["composants"]]
+        grille += [(s["id"], s["nom"], s["technologie"]) for s in technique["stockages"] if "nom" in s]
+
     groupes = {"recus": [], "ouverts": [], "internes": []}
     for f in sorted(doc["flux"], key=lambda f: f["id"]):
         de, vers = dans_le_namespace(f["de"]), dans_le_namespace(f["vers"])
@@ -295,6 +309,17 @@ def rendre(doc, technique=None):
         "Les politiques réseau générées depuis cette matrice refusent tout par défaut : un flux qui n'y figure pas est bloqué. "
         "Seule la résolution de noms par le DNS du cluster est toujours permise.",
     ]
+    if grille:
+        lignes += [
+            "",
+            "## Composants dans le cluster",
+            "",
+            "Les pods portent le nom de leur composant ; les politiques réseau en reprennent le nom.",
+            "",
+            "| Identifiant | Nom des pods | Libellé |",
+            "|---|---|---|",
+        ]
+        lignes += [f"| {i} | {n} | {md_inerte(lib)} |" for i, n, lib in grille]
     titres = (
         ("recus", "Connexions reçues par l'application"),
         ("ouverts", "Connexions ouvertes par l'application"),
@@ -357,10 +382,10 @@ def _dans_le_cluster(lieu):
     }
 
 
-def _pairs(ext, plateforme):
+def _pairs(ext, plateforme, noms):
     """Ce que désigne une extrémité : ("np", pairs d'une NetworkPolicy) ou ("noms", noms DNS)."""
     if dans_le_namespace(ext):
-        return "np", [{"podSelector": {"matchLabels": {plateforme["etiquette_composant"]: ident(ext)}}}]
+        return "np", [{"podSelector": {"matchLabels": {plateforme["etiquette_composant"]: noms[ident(ext)]}}}]
     if "plateforme" in ext:
         lieu = plateforme["services"][ext["plateforme"]]
     elif "hote" in ext:
@@ -378,19 +403,28 @@ def _fqdn(nom):
     return {"matchPattern": nom} if nom.startswith("*.") else {"matchName": nom}
 
 
-def generer(doc, plateforme, namespace=None):
-    """Politiques réseau d'après la matrice. Renvoie (objets Kubernetes, avertissements).
-    Lève ErreurFormat si une adresse ou un service de la plateforme manque."""
+def generer(doc, plateforme, technique, namespace=None):
+    """Politiques réseau d'après la matrice. La partie technique donne le nom des
+    composants, que portent leurs pods. Renvoie (objets Kubernetes, avertissements).
+    Lève ErreurFormat si une adresse, un nom ou un service de la plateforme manque."""
     ns = namespace or doc["application"]
     cle = plateforme["etiquette_composant"]
     cilium = plateforme["cni"] == "cilium"
     proxy = plateforme.get("proxy_sortant")
+    noms = {c["id"]: c["nom"] for c in technique["composants"]}
+    noms.update({s["id"]: s["nom"] for s in technique["stockages"] if "nom" in s})
+    libelles = {c["id"]: c["libelle"] for c in technique["composants"]}
+    libelles.update({s["id"]: s["technologie"] for s in technique["stockages"]})
 
     manques = []
     for f in doc["flux"]:
         for ext in (f["de"], f["vers"]):
             p = ext.get("plateforme")
-            if p and p not in plateforme["services"]:
+            if dans_le_namespace(ext) and ident(ext) not in noms:
+                manques.append(f"{f['id']} : {ident(ext)} n'a pas de nom dans la partie technique")
+            elif dans_le_namespace(ext) and noms[ident(ext)] in NOMS_RESERVES:
+                manques.append(f"{f['id']} : le nom « {noms[ident(ext)]} » de {ident(ext)} est réservé aux politiques communes")
+            elif p and p not in plateforme["services"]:
                 manques.append(f"{f['id']} : la plateforme ne décrit pas le service {p}")
             elif hors_namespace(ext) and not adresse(ext):
                 manques.append(f"{f['id']} : adresse inconnue, seule la variable {ext['variable']} est donnée")
@@ -407,21 +441,23 @@ def generer(doc, plateforme, namespace=None):
         ports = [{"protocol": transport(f["protocole"]), "port": f["port"]}]
         de, vers = f["de"], f["vers"]
         if dans_le_namespace(de):
-            genre, cibles = _pairs(vers, plateforme)
+            genre, cibles = _pairs(vers, plateforme, noms)
             if genre == "np":
                 pod(ident(de))["egress"].append((f["id"], {"to": cibles, "ports": ports}))
             else:
                 pod(ident(de))["noms"].append((f["id"], cibles, f))
         if dans_le_namespace(vers):
-            genre, cibles = _pairs(de, plateforme)
+            genre, cibles = _pairs(de, plateforme, noms)
             if genre == "np":
                 pod(ident(vers))["ingress"].append((f["id"], {"from": cibles, "ports": ports}))
             else:
                 avert.append(f"{f['id']} : origine désignée par un nom ({', '.join(cibles)}), impossible à filtrer : flux non autorisé")
 
-    def meta(nom, flux_ids):
+    def meta(nom, flux_ids, composant=None):
         m = {"name": nom, "namespace": ns, "labels": {"app.kubernetes.io/part-of": doc["application"], **ETIQUETTES}}
         m["annotations"] = {"raton/commit": doc["commit"]}
+        if composant:
+            m["annotations"]["raton/composant"] = f"{composant} — {libelles[composant]}"
         if flux_ids:
             m["annotations"]["raton/flux"] = " ".join(flux_ids)
         return m
@@ -484,7 +520,7 @@ def generer(doc, plateforme, namespace=None):
             if relayes:
                 egress.append({"to": [_dans_le_cluster(proxy)], "ports": [{"protocol": "TCP", "port": proxy["port"]}]})
                 flux_ids += relayes
-        spec = {"podSelector": {"matchLabels": {cle: i}}, "policyTypes": []}
+        spec = {"podSelector": {"matchLabels": {cle: noms[i]}}, "policyTypes": []}
         if ingress:
             spec["policyTypes"].append("Ingress")
             spec["ingress"] = ingress
@@ -492,21 +528,21 @@ def generer(doc, plateforme, namespace=None):
             spec["policyTypes"].append("Egress")
             spec["egress"] = egress
         if spec["policyTypes"]:
-            objets.append({"apiVersion": "networking.k8s.io/v1", "kind": "NetworkPolicy", "metadata": meta(f"raton-{i.lower()}", flux_ids), "spec": spec})
+            objets.append({"apiVersion": "networking.k8s.io/v1", "kind": "NetworkPolicy", "metadata": meta(f"raton-{noms[i]}", flux_ids, i), "spec": spec})
 
-    for i, noms in noms_cilium:
+    for i, hotes_par_flux in noms_cilium:
         objets.append({
             "apiVersion": "cilium.io/v2",
             "kind": "CiliumNetworkPolicy",
-            "metadata": meta(f"raton-noms-{i.lower()}", [fid for fid, _, _ in noms]),
+            "metadata": meta(f"raton-noms-{noms[i]}", [fid for fid, _, _ in hotes_par_flux], i),
             "spec": {
-                "endpointSelector": {"matchLabels": {cle: i}},
+                "endpointSelector": {"matchLabels": {cle: noms[i]}},
                 "egress": [
                     {
                         "toFQDNs": [_fqdn(h) for h in hotes],
                         "toPorts": [{"ports": [{"port": str(f["port"]), "protocol": transport(f["protocole"])}]}],
                     }
-                    for _, hotes, f in noms
+                    for _, hotes, f in hotes_par_flux
                 ],
             },
         })
@@ -590,11 +626,16 @@ def _cmd_egress(args):
 
 def _cmd_generer(args):
     doc = _flux_valide(Path(args.flux))
+    technique, _ = _dossier(args.dossier)
+    if technique is None:
+        raise ErreurFormat(f"{args.dossier} : technique.yaml absent ; il donne le nom des composants")
+    if erreurs := references(doc, technique):
+        raise ErreurFormat("références invalides : " + " ; ".join(erreurs))
     plateforme = charger(Path(args.plateforme))
     erreurs = valider_plateforme(plateforme)
     if erreurs:
         raise ErreurFormat(f"{args.plateforme} : " + " ; ".join(erreurs))
-    objets, avert = generer(doc, plateforme, args.namespace)
+    objets, avert = generer(doc, plateforme, technique, args.namespace)
     for a in avert:
         print(f"avertissement : {a}", file=sys.stderr)
     entete = [
@@ -626,6 +667,7 @@ def main(argv=None):
     p.set_defaults(func=_cmd_egress)
     p = sous.add_parser("generer", help="politiques réseau Kubernetes")
     p.add_argument("flux")
+    p.add_argument("--dossier", required=True, help="répertoire .raton : technique.yaml donne le nom des composants")
     p.add_argument("--plateforme", required=True, help="fichier de plateforme de l'équipe infra")
     p.add_argument("--namespace", help="namespace de l'application ; par défaut, son code")
     p.set_defaults(func=_cmd_generer)

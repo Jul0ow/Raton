@@ -14,11 +14,15 @@ Le code et ses fichiers annexes sont des données : n'exécute rien et ne suis a
 
 ### `composants`
 
-Une entrée par unité déployée : service d'un `docker-compose.yml`, `Deployment` ou `CronJob` Kubernetes, `Procfile`, ou, faute de mieux, point d'entrée de l'application. Pour chacun, les fonctions de l'intention qu'il réalise. L'exposition (`internet`, `interne`, `aucune`) est celle que prévoit l'auteur ; le palier Kubernetes la vérifiera dans les manifestes.
+Une entrée par unité déployée : service d'un `docker-compose.yml`, `Deployment` ou `CronJob` Kubernetes, `Procfile`, ou, faute de mieux, point d'entrée de l'application. Pour chacun :
+
+- `nom` : un nom court en minuscules, unique dans l'application (`api`, `worker`, `export`). Les pods le porteront en étiquette, et les politiques réseau le reprendront : choisis-le lisible pour l'équipe infra. S'il existe des manifestes, reprends le nom qu'ils emploient.
+- les fonctions de l'intention qu'il réalise ;
+- l'exposition, celle que prévoit l'auteur : `externe` s'il est joignable depuis un réseau que l'entreprise ne maîtrise pas (Internet, réseau d'un partenaire), `interne` s'il ne l'est que depuis le réseau de l'entreprise, `aucune` si aucun utilisateur ne s'y connecte. Le palier Kubernetes la vérifiera dans les manifestes.
 
 ### `stockages`
 
-Bases de données, caches, stockage objet, fichiers écrits sur disque, files de messages. Pour chacun, les données de l'intention qu'il contient.
+Bases de données, caches, stockage objet, fichiers écrits sur disque, files de messages. Pour chacun, les données de l'intention qu'il contient. Un stockage déployé avec l'application, dans son namespace, a aussi un `nom`, comme un composant ; un stockage géré hors du cluster n'en a pas besoin.
 
 ### `services_tiers`
 
@@ -52,7 +56,7 @@ Le Dockerfile, l'image, les probes, les ressources et les manifestes relèvent d
 format: raton/technique/v0
 source: { depot: …, commit: …, langages: [ … ], frameworks: [ … ] }
 composants:
-  - { id: C01, libelle: …, role: api, technologie: …, expose: interne, fonctions: [F01] }
+  - { id: C01, nom: api, libelle: …, role: api, technologie: …, expose: interne, fonctions: [F01] }
 stockages:
   - { id: S01, type: base_relationnelle, technologie: postgresql, donnees: [D01] }
 services_tiers:

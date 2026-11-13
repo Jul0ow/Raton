@@ -1,6 +1,6 @@
 # Format de la matrice de flux
 
-Statut : **proposition à valider** (format v0). Les points à trancher sont listés à la fin, dans [Décisions à valider](#décisions-à-valider).
+Statut : **validé en partie** le 2026-11-13 (format v0). Deux points restent à trancher, listés à la fin dans [Décisions](#décisions) : les renvois, reformulés, et le nom des pods, revu pour l'administration.
 
 La matrice de flux déclare toutes les connexions réseau de l'application : celles qu'elle reçoit, celles qu'elle ouvre, et celles qu'échangent ses composants. Elle sert deux fois :
 
@@ -9,6 +9,37 @@ La matrice de flux déclare toutes les connexions réseau de l'application : cel
 
 Les schémas font foi : [`flux.schema.json`](../../plugin/schemas/flux.schema.json) pour la matrice, [`plateforme.schema.json`](../../plugin/schemas/plateforme.schema.json) pour le fichier de plateforme. Le skill [`matrice-flux`](../../plugin/skills/matrice-flux/SKILL.md) aide l'auteur à remplir la matrice. Le script [`flux.py`](../../plugin/scripts/flux.py) la valide, la confronte au dossier et génère les politiques.
 
+## Vocabulaire
+
+### La plateforme
+
+La **plateforme** est l'ensemble des services communs que l'équipe infra fournit à toutes les applications qu'elle héberge. Aucune application ne les possède ni ne les gère elle-même :
+
+- les **points d'entrée** par lesquels arrivent les utilisateurs : l'entrée interne pour ceux du réseau de l'entreprise, l'entrée externe pour ceux qui viennent d'un réseau que l'entreprise ne maîtrise pas (Internet, réseau d'un partenaire, extranet) ;
+- le **SSO** de l'entreprise, le **gestionnaire de secrets**, la **journalisation** et la **supervision** ;
+- le **DNS** du cluster.
+
+Ce sont, avec les points d'entrée et le DNS, les « services d'infrastructure communs » que la [fiche de qualification](qualification.md#interconnexions) exclut de ses interconnexions. La matrice les nomme (`plateforme: sso`) sans dire où ils se trouvent : c'est le [fichier de plateforme](#le-fichier-de-plateforme), tenu par l'équipe infra, qui donne leur emplacement et la façon dont le cluster filtre le réseau.
+
+### Interconnexion, échange, flux
+
+Trois notions voisines, tenues dans trois documents différents, répondent à trois questions :
+
+| | Interconnexion | Échange | Flux |
+|---|---|---|---|
+| Document | fiche de qualification | intention | matrice de flux |
+| Question | avec quel système l'application communique-t-elle, et avec quels droits ? | quelles données passent, dans quel sens, et pourquoi ? | quelle connexion réseau, ouverte par qui, vers quelle adresse et quel port ? |
+| Écrit par | le métier, précisé et validé par l'équipe infra | le métier, sans le code | l'auteur, d'après le code |
+| Sert à | calculer le palier, borner les comptes de service | servir de référence à la revue | générer les politiques réseau |
+
+Pour le service d'IA de l'application `notes-de-frais` :
+
+- l'interconnexion `I02` dit que l'application écrit dans un service d'IA externe, qui n'est pas un système sensible ;
+- l'échange `E02` dit qu'elle lui envoie les justificatifs et en reçoit le montant et la date : les données vont dans les deux sens ;
+- le flux `R06` dit que le composant `C01` ouvre une connexion HTTPS vers `api.fournisseur-ia.example`, port 443 : c'est toujours l'application qui ouvre la connexion, même si les données vont dans les deux sens.
+
+Un échange se réalise par un ou plusieurs flux : un appel d'API, plus un rappel du partenaire, font deux flux pour un échange. Certains flux, à l'inverse, ne réalisent aucun échange : ceux vers la base de données de l'application, vers le SSO, ou entre ses composants. Un flux vers un autre système qui ne réalise aucun échange est un **flux non déclaré**.
+
 ## Ce que le format doit permettre
 
 - **Devenir un contrôle.** Les politiques réseau sont générées depuis la matrice, et depuis elle seule. Déclarer un flux revient à en demander l'ouverture ; l'omettre revient à le bloquer.
@@ -16,7 +47,7 @@ Les schémas font foi : [`flux.schema.json`](../../plugin/schemas/flux.schema.js
 - **Justifier chaque flux.** Un flux vers un système que l'application ne possède pas renvoie à l'échange de l'intention qu'il réalise, et à l'interconnexion de la fiche de qualification par laquelle il passe. Le juge vérifie des références au lieu de comparer de la prose, et l'équipe infra voit pourquoi elle ouvre chaque flux.
 - **Être produite en aveugle.** Le relecteur aveugle remplit une matrice dans le même format. Il ne connaît ni les échanges ni les interconnexions, donc ces renvois sont facultatifs dans le schéma.
 - **Se comparer aux flux observés.** Les destinations sont désignées comme l'analyse dynamique les voit : nom DNS ou bloc d'adresses, et port.
-- **Rester indépendante du CNI.** La matrice nomme les destinations. C'est un fichier de plateforme, tenu par l'équipe infra, qui dit comment le cluster les filtre.
+- **Rester indépendante du CNI.** La matrice nomme les destinations. C'est le fichier de plateforme qui dit comment le cluster les filtre.
 
 ## Fichier
 
@@ -63,7 +94,7 @@ Une extrémité a une seule nature :
 | `stockage: S01` | un stockage de la partie technique | aucune s'il est déployé dans le namespace ; sinon son adresse (base gérée, stockage objet de l'entreprise) |
 | `service: T01` | un service tiers de la partie technique | obligatoire |
 | `systeme: <libellé>` | un autre système, qui n'est pas un service tiers ; typiquement, un partenaire qui appelle l'application | obligatoire |
-| `plateforme: <service>` | un service fourni à toutes les applications : `entree_interne` et `entree_externe` (points d'entrée des utilisateurs, depuis le réseau de l'entreprise ou depuis l'extérieur), `sso`, `secrets`, `journalisation`, `supervision` | aucune : le fichier de plateforme la donne |
+| `plateforme: <service>` | un service de la [plateforme](#la-plateforme) : `entree_interne` et `entree_externe` (points d'entrée des utilisateurs, depuis le réseau de l'entreprise ou depuis un réseau qu'elle ne maîtrise pas), `sso`, `secrets`, `journalisation`, `supervision` | aucune : le fichier de plateforme la donne |
 
 L'adresse s'écrit de l'une de ces façons :
 
@@ -75,7 +106,13 @@ L'adresse s'écrit de l'une de ces façons :
 
 On écrit le nom d'hôte, jamais l'URL entière : une URL peut contenir une clé, comme le DSN de Sentry.
 
-**Renvois.** Un flux dont une extrémité est un `service` ou un `systeme` renvoie à ses échanges et à ses interconnexions. Les autres flux n'en ont pas : entre composants, vers les stockages de l'application, et vers les services de la plateforme. Ce sont les mêmes exclusions que pour les [interconnexions de la fiche](qualification.md#interconnexions).
+**Renvois.** Seuls les flux vers un système que l'application ne possède pas, un `service` tiers ou un autre `systeme`, renvoient à un échange de l'intention et à une interconnexion de la fiche. Les autres flux n'ont rien à citer, puisque ni l'intention ni la fiche ne les décrivent :
+
+- les flux vers les stockages de l'application, sa base de données ou son stockage objet : elle les possède ;
+- les flux entre ses composants ;
+- les flux vers la plateforme ou depuis elle : entrées des utilisateurs, SSO, secrets, journalisation, supervision.
+
+Dans l'exemple ci-dessous, `R03`, vers la base PostgreSQL de l'application, ne cite rien ; `R05`, vers l'annuaire, cite l'échange `E01` et l'interconnexion `I01`. Ce sont les exclusions des [interconnexions de la fiche](qualification.md#interconnexions).
 
 **Règles.** En plus du schéma, `flux.py valider` vérifie que :
 
@@ -205,7 +242,7 @@ Sur le corpus, la matrice soumise ne donne aucun écart : elle est cohérente av
 Hypothèses de déploiement :
 
 - un namespace par application, nommé d'après son code ;
-- chaque pod porte l'identifiant de son composant ou de son stockage (`C01`, `S01`), dans une étiquette que fixe la plateforme. Le palier Kubernetes (skill 5) vérifiera que les manifestes la posent ;
+- chaque pod porte le nom de son composant ou de son stockage, tel que le donne la partie technique (`api`, `worker`, `postgres`), dans une étiquette que fixe la plateforme. Un nom lisible évite à l'équipe infra de tenir une grille de correspondance : elle lit `api` dans le cluster, là où `C01` l'obligerait à ouvrir le dossier. Le palier Kubernetes (skill 5) vérifiera que les manifestes posent cette étiquette ;
 - tout est refusé par défaut, en entrée comme en sortie.
 
 ### Le fichier de plateforme
@@ -215,7 +252,7 @@ L'équipe infra le tient à la racine de son dépôt. Il est commun à toutes le
 ```yaml
 format: raton/plateforme/v0
 cni: cilium                                        # cilium | standard
-etiquette_composant: app.kubernetes.io/component  # porte C01, S01… sur chaque pod
+etiquette_composant: app.kubernetes.io/component  # porte le nom du composant (api, worker…)
 
 dns:
   namespace: kube-system
@@ -247,12 +284,12 @@ Avec un CNI `standard`, la plateforme peut ajouter un `proxy_sortant` (namespace
 
 1. `raton-refus-par-defaut` refuse toute entrée et toute sortie aux pods du namespace.
 2. `raton-dns` permet la résolution de noms auprès du DNS du cluster.
-3. `raton-<composant>` est une NetworkPolicy par composant ou stockage du namespace. Elle porte une règle par flux désigné par un sélecteur ou par un bloc d'adresses : les entrées depuis la plateforme, les flux entre composants, les blocs d'adresses.
+3. `raton-<nom>` est une NetworkPolicy par composant ou stockage du namespace, nommée d'après lui (`raton-api`). Elle porte une règle par flux désigné par un sélecteur ou par un bloc d'adresses : les entrées depuis la plateforme, les flux entre composants, les blocs d'adresses.
 4. Les flux vers un nom DNS dépendent du CNI :
-   - avec Cilium, `raton-noms-<composant>` est une CiliumNetworkPolicy, avec une règle `toFQDNs` par flux ;
+   - avec Cilium, `raton-noms-<nom>` est une CiliumNetworkPolicy, avec une règle `toFQDNs` par flux ;
    - avec un CNI standard, la NetworkPolicy du composant l'autorise à joindre le proxy sortant, et `flux.py egress` donne la liste des destinations à autoriser dans le proxy. Seuls `http`, `https` et `grpc` passent par le proxy ; un autre protocole doit désigner sa destination par un bloc d'adresses. Sans proxy, ces flux restent bloqués, et le script le signale.
 
-Chaque politique porte en annotation le commit et les flux dont elle découle (`raton/flux`), pour remonter d'une règle à la ligne de la matrice.
+Chaque politique porte en annotation le commit, le composant avec son libellé (`raton/composant`) et les flux dont elle découle (`raton/flux`), pour remonter d'une règle à la ligne de la matrice. Le rendu (`flux.py rendre --dossier`) donne la grille complète des composants, de leurs noms et de leurs libellés. Les noms `dns` et `refus-par-defaut` sont réservés aux politiques communes.
 
 Pour le corpus, avec Cilium, l'entrée des utilisateurs donne cette politique :
 
@@ -260,18 +297,19 @@ Pour le corpus, avec Cilium, l'entrée des utilisateurs donne cette politique :
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: raton-c01
+  name: raton-api
   namespace: notes-de-frais
   labels:
     app.kubernetes.io/part-of: notes-de-frais
     app.kubernetes.io/managed-by: raton
   annotations:
     raton/commit: 4e3d3e49bc553b5ff0d6f7203f4791cf783997fb
+    raton/composant: C01 — API notes de frais
     raton/flux: R01
 spec:
   podSelector:
     matchLabels:
-      app.kubernetes.io/component: C01
+      app.kubernetes.io/component: api
   policyTypes:
   - Ingress
   ingress:
@@ -287,7 +325,7 @@ spec:
       port: 8000
 ```
 
-Les six flux sortants, tous désignés par un nom, donnent une CiliumNetworkPolicy `raton-noms-c01` à six règles, comme celle de l'annuaire :
+Les six flux sortants, tous désignés par un nom, donnent une CiliumNetworkPolicy `raton-noms-api` à six règles, comme celle de l'annuaire :
 
 ```yaml
 - toFQDNs:
@@ -311,7 +349,7 @@ Une NetworkPolicy standard ne connaît que des sélecteurs de pods et des blocs 
 | Ce qu'il faut | Cilium comme CNI | un proxy sortant, que l'application doit utiliser (`HTTPS_PROXY`) |
 | Ce que génère Raton | NetworkPolicies et CiliumNetworkPolicies | NetworkPolicies, et la liste à charger dans le proxy (`flux.py egress`) |
 
-Cilium filtre tous les protocoles sans que l'application ait à coopérer. C'est l'option recommandée, si le cluster peut l'adopter. Le format ne dépend pas de ce choix, et le générateur sait produire les deux.
+Cilium filtre tous les protocoles sans que l'application ait à coopérer. **Décidé le 2026-11-13 : Cilium par défaut.** Le mode standard avec un proxy sortant reste disponible pour un cluster qui ne pourrait pas l'adopter : le format ne dépend pas de ce choix, et le générateur sait produire les deux.
 
 ## Comparaisons à venir
 
@@ -335,30 +373,39 @@ python3 plugin/scripts/flux.py valider .raton/flux.yaml [--dossier .raton] [--qu
 python3 plugin/scripts/flux.py ecarts .raton/flux.yaml --dossier .raton --qualification qualification.yaml
 python3 plugin/scripts/flux.py rendre .raton/flux.yaml [--dossier .raton]
 python3 plugin/scripts/flux.py egress .raton/flux.yaml
-python3 plugin/scripts/flux.py generer .raton/flux.yaml --plateforme plateforme.yaml [--namespace notes-de-frais]
+python3 plugin/scripts/flux.py generer .raton/flux.yaml --dossier .raton --plateforme plateforme.yaml [--namespace notes-de-frais]
 ```
 
 - `valider` contrôle le schéma, les règles et, avec les options, les renvois vers le dossier et la fiche.
 - `ecarts` liste les écarts du tableau ci-dessus.
 - `rendre` produit le rendu lisible que relisent l'auteur et l'équipe infra.
 - `egress` liste les connexions que l'application ouvre hors de son namespace, pour un proxy sortant ou un pare-feu.
-- `generer` produit les politiques réseau ; ses avertissements vont sur la sortie d'erreur.
+- `generer` produit les politiques réseau ; la partie technique lui donne le nom des composants. Ses avertissements vont sur la sortie d'erreur.
 
 `dossier.py valider .raton` valide aussi `flux.yaml`, avec ses renvois vers l'intention et la partie technique.
 
-## Décisions à valider
+## Décisions
+
+Validées le 2026-11-13 :
 
 1. Un fichier `.raton/flux.yaml`, qui décrit le même commit que la partie technique, rempli par l'auteur avec le skill.
 2. Une seule liste de flux, chacun dans le sens de la connexion (`de` ouvre, `vers` reçoit), plutôt que des listes séparées d'entrées et de sorties : un flux entre deux composants s'écrit une seule fois.
 3. Cinq natures d'extrémités : composant, stockage, service tiers, autre système, service de la plateforme.
 4. Des destinations désignées par un nom DNS (joker d'un seul niveau, comme Cilium) ou par un bloc d'adresses. Une variable seule marque une adresse à fixer, et bloque la génération.
-5. Des renvois aux échanges et aux interconnexions pour les seuls flux vers un service ou un système, avec les mêmes exclusions que dans la fiche.
-6. Une couverture (flux non déclaré, échange sans flux…) signalée par des écarts à examiner, comme `dossier.py ecarts`, plutôt que par des erreurs de format.
-7. Un fichier de plateforme, tenu par l'équipe infra, qui sépare la matrice du cluster.
-8. Des hypothèses de déploiement : un namespace par application, un refus par défaut, des pods étiquetés par l'identifiant de leur composant.
-9. **Le CNI**, question ouverte de la feuille de route : Cilium, recommandé, ou NetworkPolicy standard avec un proxy sortant.
+5. Une couverture (flux non déclaré, échange sans flux…) signalée par des écarts à examiner, comme `dossier.py ecarts`, plutôt que par des erreurs de format.
+6. Un fichier de plateforme, tenu par l'équipe infra, qui sépare la matrice du cluster.
+7. Cilium comme CNI par défaut ; le mode standard, avec un proxy sortant, reste disponible.
 
-Une remarque, enfin : la partie technique dit encore `expose: internet` pour un composant joignable de l'extérieur, alors que la qualification parle désormais d'exposition `externe`. Les aligner demanderait une nouvelle version du format technique ; c'est à décider avec le reste.
+Demandés à la même relecture :
+
+- définir la plateforme, et distinguer interconnexion, échange et flux : voir [Vocabulaire](#vocabulaire) ;
+- l'entrée externe ne se limite pas à Internet : la partie technique emploie désormais l'exposition `externe` de la qualification, au lieu de `internet` ;
+- le skill demande la fiche de qualification avant de commencer, et ne va pas plus loin sans elle.
+
+À valider :
+
+1. **Les renvois**, reformulés. Seuls les flux vers un service tiers ou un autre système citent un échange et une interconnexion. Les flux vers les stockages de l'application, entre ses composants, et vers ou depuis la plateforme n'en citent pas, parce que ni l'intention ni la fiche ne les décrivent : voir le paragraphe « Renvois » de [Contenu](#contenu).
+2. **Le nom des pods**, revu pour l'administration. Toujours un namespace par application et un refus par défaut. Mais les pods portent un nom lisible, déclaré dans la partie technique (`api`), plutôt que l'identifiant `C01`. Les politiques reprennent ce nom (`raton-api`) et rappellent l'identifiant et le libellé en annotation ; le rendu donne la grille complète.
 
 ## Reporté
 

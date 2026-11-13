@@ -76,7 +76,7 @@
         "systeme": { "$ref": "#/$defs/texte_court", "description": "Autre système, quand il n'est pas un service tiers de la partie technique : par exemple un partenaire qui appelle l'application." },
         "plateforme": {
           "enum": ["entree_interne", "entree_externe", "sso", "secrets", "journalisation", "supervision"],
-          "description": "Service fourni par la plateforme, que décrit le fichier de plateforme de l'équipe infra. entree_interne et entree_externe : les points d'entrée des utilisateurs, depuis le réseau de l'entreprise ou depuis l'extérieur."
+          "description": "Service de la plateforme, c'est-à-dire l'un des services communs que l'équipe infra fournit à toutes les applications ; le fichier de plateforme dit où il se trouve. entree_interne : point d'entrée des utilisateurs du réseau de l'entreprise ; entree_externe : point d'entrée des utilisateurs venant d'un réseau que l'entreprise ne maîtrise pas (Internet, réseau d'un partenaire, extranet)."
         },
         "hote": { "$ref": "#/$defs/hote" },
         "cidr": { "$ref": "#/$defs/cidr" },

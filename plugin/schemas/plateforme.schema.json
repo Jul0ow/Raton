@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:raton:schema:plateforme:v0",
   "title": "Plateforme",
-  "description": "Ce que la génération des politiques réseau doit savoir du cluster : CNI, étiquette des composants, DNS, proxy sortant, emplacement des services de la plateforme. Tenu par l'équipe infra, commun à toutes les applications.",
+  "description": "La plateforme est l'ensemble des services communs que l'équipe infra fournit à toutes les applications qu'elle héberge : points d'entrée des utilisateurs, SSO, gestionnaire de secrets, journalisation, supervision, DNS. Ce fichier dit où ils se trouvent et comment le cluster filtre le réseau (CNI, étiquette des composants, proxy sortant), pour générer les politiques réseau. Tenu par l'équipe infra, commun à toutes les applications.",
   "type": "object",
   "additionalProperties": false,
   "required": ["format", "cni", "etiquette_composant", "dns", "services"],
@@ -14,7 +14,7 @@
     },
     "etiquette_composant": {
       "$ref": "#/$defs/cle_etiquette",
-      "description": "Étiquette qui porte, sur chaque pod, l'identifiant de son composant ou de son stockage (C01, S01)."
+      "description": "Étiquette qui porte, sur chaque pod, le nom de son composant ou de son stockage, tel que le donne la partie technique (api, worker, postgres)."
     },
     "dns": { "$ref": "#/$defs/dans_le_cluster", "description": "DNS du cluster, toujours autorisé." },
     "proxy_sortant": {

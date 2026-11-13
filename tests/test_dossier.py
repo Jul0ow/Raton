@@ -63,6 +63,24 @@ class TestExemplesDeLaDoc(unittest.TestCase):
         self.assertEqual(codes, ["donnee_non_prevue", "service_sans_echange"])
         self.assertEqual(len(res), 2, res)
 
+    def test_nom_de_composant_unique(self):
+        technique = copy.deepcopy(self.technique)
+        technique["stockages"][0]["nom"] = "api"
+        _, erreurs, _ = dossier.valider_document(technique, self.intention)
+        self.assertEqual(erreurs, ["S01 : nom « api » déjà porté par C01 ; il étiquette les pods, il doit être unique"])
+
+    def test_exposition_externe_et_non_internet(self):
+        technique = copy.deepcopy(self.technique)
+        technique["composants"][0]["expose"] = "externe"
+        self.assertEqual(dossier.valider_document(technique, self.intention)[1], [])
+        technique["composants"][0]["expose"] = "internet"
+        self.assertNotEqual(dossier.valider_document(technique, self.intention)[1], [])
+
+    def test_composant_sans_nom_refuse(self):
+        technique = copy.deepcopy(self.technique)
+        del technique["composants"][0]["nom"]
+        self.assertNotEqual(dossier.valider_document(technique, self.intention)[1], [])
+
     def test_intention_identique_au_corpus(self):
         self.assertEqual(self.intention, charger_corpus("intention.yaml"))
 

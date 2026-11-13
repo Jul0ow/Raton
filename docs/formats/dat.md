@@ -1,6 +1,6 @@
 # Format du DAT
 
-Statut : **validé** le 2026-11-08 (format v0). Complété le 2026-11-12 : les échanges renvoient aux interconnexions de la qualification.
+Statut : **validé** le 2026-11-08 (format v0). Complété le 2026-11-12 : les échanges renvoient aux interconnexions de la qualification. Complété le 2026-11-13, avec la matrice de flux : exposition `externe` des composants, nom des composants dans le cluster.
 
 Le DAT (dossier d'architecture technique) décrit une application soumise à la revue. Il a deux rôles :
 
@@ -153,8 +153,8 @@ Elle décrit l'application telle qu'elle est construite, au commit indiqué. Ell
 | Section | Contenu |
 |---|---|
 | `source` | dépôt, commit (SHA complet), langages, frameworks |
-| `composants` | unités déployées : rôle (`web`, `api`, `worker`, `tache_planifiee`), technologie, exposition, fonctions réalisées |
-| `stockages` | bases, fichiers, caches : type (liste fermée), technologie, données stockées |
+| `composants` | unités déployées : nom dans le cluster, rôle (`web`, `api`, `worker`, `tache_planifiee`), technologie, exposition, fonctions réalisées |
+| `stockages` | bases, fichiers, caches : type (liste fermée), technologie, données stockées ; nom dans le cluster s'il est déployé avec l'application |
 | `services_tiers` | tout ce que le code appelle hors de l'application, systèmes de l'entreprise compris, sauf les stockages et le SSO. **Y compris télémétrie, analytics et remontée d'erreurs.** Pour chacun : données transmises, échanges réalisés |
 | `authentification` | mécanisme (`sso_entreprise`, `maison`, `aucune`), protocole, correspondance entre rôles techniques et profils |
 | `configuration` | variables attendues, secrets attendus (noms seulement, jamais de valeur) et leur provenance |
@@ -171,7 +171,7 @@ source:
   frameworks: [fastapi, sqlalchemy]
 
 composants:
-  - { id: C01, libelle: API notes de frais, role: api, technologie: python / fastapi, expose: interne, fonctions: [F01, F02, F03, F04] }
+  - { id: C01, nom: api, libelle: API notes de frais, role: api, technologie: python / fastapi, expose: interne, fonctions: [F01, F02, F03, F04] }
 
 stockages:
   - { id: S01, type: base_relationnelle, technologie: postgresql, donnees: [D01] }
@@ -251,6 +251,11 @@ Validées le 2026-11-08 :
 4. Identifiants courts à préfixe (`P01`, `F01`…).
 
 Complété le 2026-11-12 : chaque échange peut citer les interconnexions de la fiche de qualification par lesquelles il passe.
+
+Complété le 2026-11-13, à la relecture de la matrice de flux :
+
+- l'exposition d'un composant vaut `externe`, et non plus `internet`, avec le sens qu'elle a dans la qualification : joignable depuis un réseau que l'entreprise ne maîtrise pas, Internet ou réseau d'un partenaire ;
+- chaque composant, et chaque stockage déployé avec l'application, a un `nom` court et lisible (`api`, `worker`, `postgres`), unique dans l'application. Ses pods le portent en étiquette et les politiques réseau le reprennent : l'équipe infra lit `api` dans le cluster plutôt que `C01`.
 
 Écarté pour l'instant : exiger un second valideur de l'intention quand l'auteur du code et le porteur métier sont la même personne.
 
