@@ -1,0 +1,45 @@
+# Extrait du config.toml des deux runners de Raton (exécuteur Kubernetes).
+#
+# Dans GitLab, chaque runner est enregistré pour le seul projet de revue de l'équipe infra
+# (verrouillé sur ce projet) et ne prend que les jobs des branches protégées.
+# L'URL de GitLab et les jetons d'enregistrement sont ceux des autres runners de l'équipe infra.
+
+[[runners]]
+  name = "raton-preparation"
+  executor = "kubernetes"
+  [runners.kubernetes]
+    namespace = "raton-preparation"          # réseau : JFrog seulement (politiques-reseau.yaml)
+    service_account = "raton-job"            # aucun droit sur l'API Kubernetes
+    automount_service_account_token = false
+    privileged = false
+    allow_privilege_escalation = false
+    allowed_images = ["jfrog.example.com/raton/outillage@sha256:*"]
+    helper_image = "jfrog.example.com/gitlab/gitlab-runner-helper@sha256:…"  # épinglée, via JFrog
+    cap_drop = ["ALL"]
+    cpu_limit = "2"
+    memory_limit = "4Gi"
+    [runners.kubernetes.pod_security_context]
+      run_as_non_root = true
+      run_as_user = 10001
+      run_as_group = 10001
+      fs_group = 10001
+
+[[runners]]
+  name = "raton-analyse"
+  executor = "kubernetes"
+  [runners.kubernetes]
+    namespace = "raton-analyse"              # réseau : GitLab seulement (politiques-reseau.yaml)
+    service_account = "raton-job"
+    automount_service_account_token = false
+    privileged = false
+    allow_privilege_escalation = false
+    allowed_images = ["jfrog.example.com/raton/outillage@sha256:*"]
+    helper_image = "jfrog.example.com/gitlab/gitlab-runner-helper@sha256:…"
+    cap_drop = ["ALL"]
+    cpu_limit = "4"
+    memory_limit = "8Gi"
+    [runners.kubernetes.pod_security_context]
+      run_as_non_root = true
+      run_as_user = 10001
+      run_as_group = 10001
+      fs_group = 10001

@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:raton:schema:execution:v0",
+  "title": "Exécution des contrôles déterministes",
+  "description": "Manifeste d'une exécution du pipeline sur un commit : avec quelle fiche, quelle image, quelles bases de vulnérabilités, et ce qu'est devenu chaque contrôle. Un contrôle en échec n'a rien vérifié : il ne doit jamais passer pour un contrôle sans constat.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "application", "commit", "date", "fiche", "controles"],
+  "properties": {
+    "format": { "const": "raton/execution/v0" },
+    "application": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "maxLength": 63,
+      "description": "Code de l'application dans la fiche de qualification."
+    },
+    "commit": { "$ref": "urn:raton:schema:constat:v0#/$defs/sha" },
+    "date": { "$ref": "urn:raton:schema:constat:v0#/$defs/date_heure" },
+    "fiche": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["empreinte", "palier"],
+      "properties": {
+        "empreinte": { "$ref": "#/$defs/empreinte", "description": "Empreinte du fichier de la fiche : un avis vaut pour une version de la fiche." },
+        "palier": { "type": "integer", "minimum": 1, "maximum": 3 }
+      }
+    },
+    "image": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300,
+      "description": "Image d'outillage, telle que le pipeline l'a lancée : nom et digest."
+    },
+    "historique": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["complet"],
+      "properties": {
+        "complet": { "type": "boolean", "description": "Faux si le dépôt est un clone superficiel." },
+        "commits": { "type": "integer", "minimum": 1, "description": "Nombre de commits jusqu'au commit relu." }
+      }
+    },
+    "bases": {
+      "type": "array",
+      "maxItems": 1000,
+      "description": "Fichiers préparés hors du dépôt (bases de vulnérabilités), avec leur empreinte.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["fichier", "empreinte"],
+        "properties": {
+          "fichier": { "$ref": "urn:raton:schema:constat:v0#/$defs/chemin" },
+          "empreinte": { "$ref": "#/$defs/empreinte" },
+          "date": { "$ref": "urn:raton:schema:constat:v0#/$defs/date_heure", "description": "Date de mise à jour de la base, quand elle la donne." }
+        }
+      }
+    },
+    "controles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["controle", "statut"],
+        "properties": {
+          "controle": { "$ref": "urn:raton:schema:constat:v0#/$defs/controle" },
+          "outil": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["nom", "version"],
+            "properties": {
+              "nom": { "type": "string", "minLength": 1, "maxLength": 100 },
+              "version": { "type": "string", "minLength": 1, "maxLength": 100 }
+            }
+          },
+          "statut": {
+            "enum": ["fait", "echec", "non_outille"],
+            "description": "fait : l'outil a tourné et son rapport est valide. echec : l'outil n'a pas tourné jusqu'au bout, ou son rapport est invalide. non_outille : la fiche exige ce contrôle, mais aucun outil ne le réalise encore."
+          },
+          "motif": { "type": "string", "minLength": 1, "maxLength": 500 },
+          "rapport": { "$ref": "urn:raton:schema:constat:v0#/$defs/chemin" },
+          "brut": {
+            "type": "array",
+            "items": { "$ref": "urn:raton:schema:constat:v0#/$defs/chemin" },
+            "description": "Sorties de l'outil, valeurs secrètes masquées."
+          },
+          "constats": { "type": "integer", "minimum": 0 },
+          "verification": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["verifies", "refutes", "non_verifiables"],
+            "properties": {
+              "verifies": { "type": "integer", "minimum": 0 },
+              "refutes": { "type": "integer", "minimum": 0 },
+              "non_verifiables": { "type": "integer", "minimum": 0 }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": { "properties": { "statut": { "const": "fait" } } },
+            "then": { "required": ["outil", "rapport", "constats", "verification"] }
+          },
+          {
+            "if": { "properties": { "statut": { "enum": ["echec", "non_outille"] } } },
+            "then": { "required": ["motif"] }
+          }
+        ]
+      }
+    }
+  },
+  "$defs": {
+    "empreinte": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+  }
+}

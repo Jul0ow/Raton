@@ -1,0 +1,67 @@
+# Réseau des jobs de Raton, avec Cilium, le CNI par défaut de la plateforme.
+#
+# Ces politiques visent les namespaces des jobs ; le gestionnaire des runners tourne dans
+# un autre namespace. Tout est refusé, puis chaque namespace reçoit le DNS du cluster et
+# une seule destination :
+#   raton-preparation → JFrog, pour télécharger les bases de vulnérabilités ;
+#   raton-analyse     → GitLab, pour cloner le dépôt et déposer les artefacts. Le conteneur
+#                       d'aide du runner, qui le fait, partage le réseau du pod du job.
+# Remplacer jfrog.example.com, gitlab.example.com et le sélecteur du DNS par ceux du cluster.
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: raton-refus-par-defaut
+  namespace: raton-preparation
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: raton-sortie
+  namespace: raton-preparation
+spec:
+  endpointSelector: {}
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports: [{ port: "53", protocol: ANY }]
+          rules:
+            dns: [{ matchPattern: "*" }]
+    - toFQDNs: [{ matchName: jfrog.example.com }]
+      toPorts:
+        - ports: [{ port: "443", protocol: TCP }]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: raton-refus-par-defaut
+  namespace: raton-analyse
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: raton-sortie
+  namespace: raton-analyse
+spec:
+  endpointSelector: {}
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports: [{ port: "53", protocol: ANY }]
+          rules:
+            dns: [{ matchPattern: "*" }]
+    - toFQDNs: [{ matchName: gitlab.example.com }]
+      toPorts:
+        - ports: [{ port: "443", protocol: TCP }]

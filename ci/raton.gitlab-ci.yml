@@ -1,0 +1,66 @@
+# Pipeline de revue Raton : contrôles déterministes.
+#
+# À inclure dans le dépôt de l'équipe infra, jamais dans celui de l'application : l'auteur
+# ne doit pas pouvoir modifier la revue de son propre code.
+#
+#   include:
+#     - project: <groupe>/raton
+#       ref: <SHA du commit de Raton retenu>
+#       file: ci/raton.gitlab-ci.yml
+#
+# Variables du projet (Paramètres > CI/CD > Variables) :
+#   RATON_IMAGE        image d'outillage, épinglée par digest :
+#                      jfrog.example.com/raton/outillage@sha256:…
+#   RATON_BASE_TRIVY   base de vulnérabilités de Trivy, par le dépôt distant de JFrog :
+#                      jfrog.example.com/ghcr/aquasecurity/trivy-db:2
+#
+# Variables du lancement (pipeline manuel, ou déclenché par l'API) :
+#   RATON_APPLICATION  code de l'application, tel que dans sa fiche
+#   RATON_PROJET       chemin GitLab du dépôt de l'application : groupe/projet
+#   RATON_COMMIT       SHA complet du commit soumis
+#   RATON_FICHE        chemin de la fiche validée, dans ce dépôt
+#
+# Deux runners dédiés dans Kubernetes (voir ci/runners/) :
+#   raton-preparation  réseau limité à JFrog ; ne voit aucun dépôt
+#   raton-analyse      réseau limité à GitLab ; voit le dépôt, sans rien en exécuter
+
+workflow:
+  rules:
+    - if: $RATON_COMMIT && $RATON_PROJET && $RATON_FICHE && $RATON_APPLICATION
+
+stages: [preparation, analyse]
+
+raton:preparation:
+  stage: preparation
+  image: $RATON_IMAGE
+  tags: [raton-preparation]
+  variables:
+    GIT_STRATEGY: none  # la préparation ne voit aucun dépôt, pas même celui-ci
+  script:
+    - mkdir -p bases/trivy
+    - trivy image --download-db-only --db-repository "$RATON_BASE_TRIVY" --cache-dir bases/trivy --no-progress
+    - controles.py inventorier bases > bases/inventaire.yaml
+  artifacts:
+    paths: [bases/]
+    expire_in: 1 day
+
+raton:analyse:
+  stage: analyse
+  image: $RATON_IMAGE
+  tags: [raton-analyse]
+  needs: [raton:preparation]
+  variables:
+    GIT_DEPTH: "1"  # de ce dépôt, seule la fiche sert
+  script:
+    - printf '%s\n' "$RATON_COMMIT" | grep -Eqx '[0-9a-f]{40}'
+    # Clone complet (l'historique est analysé), sans hook ni sous-module. Le jeton du job
+    # ne sert qu'au clone : il est retiré de la configuration aussitôt après.
+    - git -c core.hooksPath=/dev/null clone --quiet --no-checkout "https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}/${RATON_PROJET}.git" depot
+    - git -C depot remote set-url origin "${CI_SERVER_URL}/${RATON_PROJET}.git"
+    - git -C depot -c core.hooksPath=/dev/null -c advice.detachedHead=false checkout --quiet --detach "$RATON_COMMIT"
+    - controles.py analyser depot --commit "$RATON_COMMIT" --fiche "$RATON_FICHE" --application "$RATON_APPLICATION"
+        --bases bases --image "$CI_JOB_IMAGE" --sortie "revue/$RATON_APPLICATION/$RATON_COMMIT"
+  artifacts:
+    when: always  # un contrôle en échec garde son manifeste : il ne doit pas passer pour un contrôle sans constat
+    paths: [revue/]
+    expire_in: 30 days

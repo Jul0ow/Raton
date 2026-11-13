@@ -1,0 +1,31 @@
+# Règles gitleaks de Raton : les règles par défaut de gitleaks, plus celles de Raton.
+#
+# controles.py passe ce fichier par --config : un .gitleaks.toml du dépôt relu n'est jamais
+# lu, et aucune liste d'exceptions ne vient de l'auteur. Ajouter une exception ici vaut
+# pour toutes les applications : elle se discute comme une règle, avec un cas du corpus.
+
+title = "Raton"
+
+[extend]
+useDefault = true
+
+# Identifiants dans une URL : postgresql://utilisateur:motdepasse@hôte, amqp://…, https://…
+# Les règles par défaut ne couvrent pas ce cas, fréquent dans le code produit par une IA
+# (valeur par défaut d'une variable DATABASE_URL, par exemple). Seul le mot de passe est
+# le secret : c'est lui que les rapports masquent.
+[[rules]]
+id = "raton-identifiants-url"
+description = "Identifiants dans une URL (utilisateur:mot de passe@hôte)"
+regex = '''(?i)\b[a-z][a-z0-9+.-]{1,20}://[^\s:/@'"`]{1,64}:([^\s:/@'"`]{3,128})@[^\s/'"`]{1,253}'''
+secretGroup = 1
+keywords = ["://"]
+
+  # Une variable interpolée n'est pas un secret : ${DB_PASSWORD}, $PASS, {password}, %(password)s.
+  [[rules.allowlists]]
+  description = "Variable interpolée à la place du mot de passe"
+  regexTarget = "secret"
+  regexes = [
+    '''^\$\{?[A-Za-z_][A-Za-z0-9_]*\}?$''',
+    '''^\{[A-Za-z_][A-Za-z0-9_]*\}$''',
+    '''^%\([A-Za-z_][A-Za-z0-9_]*\)s$''',
+  ]

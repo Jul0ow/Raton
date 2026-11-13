@@ -205,7 +205,8 @@ flowchart LR
   classDef afaire fill:#f8f9fa,stroke:#868e96,color:#000,stroke-dasharray:4 3
   class E,S humain
   class QF,RAP fait
-  class DET,AG,DYN,SBOM,SYN,AVIS,DIFF afaire
+  class DET propose
+  class AG,DYN,SBOM,SYN,AVIS,DIFF afaire
 ```
 
 ### Qui voit quoi pendant la revue par agents
@@ -258,7 +259,7 @@ flowchart LR
 | 4 | Dossier d'exploitation | auteur, équipe infra | — | dossier d'exploitation | à faire |
 | 5 | Palier Kubernetes | outils | Dockerfile, manifestes, qualification | rapport | à faire |
 | 6 | Chaîne d'approvisionnement | outils | manifestes, lockfiles, images | SBOM, rapport | à faire |
-| 7 | Secrets | outils | code, historique git | rapport | à faire |
+| 7 | Secrets | outils (gitleaks), par le pipeline de l'équipe infra | code, historique git, fiche | rapport, manifeste d'exécution | proposé |
 | 8 | Identité et accès | outils, agent | code, partie technique | rapport | à faire |
 | 9 | Revue par agents | agents ; l'équipe infra tranche | code ; dossier pour l'informé et le juge | reconstruction, rapports | à faire |
 | 10 | Analyse dynamique | outils, en bac à sable | application déployée, `flux.yaml` | rapport des flux observés | à faire |
@@ -277,7 +278,8 @@ Composants transverses :
 | Formats du dossier d'exploitation et de l'avis | à faire |
 | Scripts `dossier.py`, `constats.py` et `qualification.py` | en place |
 | Script `flux.py` : validation, écarts, génération des politiques réseau | en place |
-| Image conteneur d'outillage (Semgrep, gitleaks, Trivy…) | à faire |
+| Image d'outillage et pipeline GitLab : deux runners dédiés, préparation puis analyse (gitleaks, Trivy ; osv-scanner, Opengrep à venir) | proposé |
+| Script `controles.py` et format du manifeste d'exécution | proposé |
 | Corpus de test | un cas : `notes-de-frais` |
 
 ## Rôles
