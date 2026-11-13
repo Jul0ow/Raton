@@ -155,8 +155,7 @@ flowchart LR
   classDef propose fill:#fff3bf,stroke:#e67700,color:#000
   classDef afaire fill:#f8f9fa,stroke:#868e96,color:#000,stroke-dasharray:4 3
   class M,E humain
-  class Q,QF,DAT,INT,TEC fait
-  class MF,FLX,PLT,NP propose
+  class Q,QF,DAT,INT,TEC,MF,FLX,PLT,NP fait
   class EXP,PC,EXF,MQ afaire
 ```
 
@@ -255,7 +254,7 @@ flowchart LR
 |---|---|---|---|---|---|
 | 1 | Qualification | métier (répond), équipe infra (valide) | réponses ; référentiel des applications s'il existe, sinon l'équipe infra ; intention pour le recoupement | fiche de qualification, rangée par l'équipe infra : interconnexions, palier, contrôles obligatoires | en place |
 | 2 | DAT | métier (intention), auteur avec une IA (technique) | entretien ; code pour la partie technique | `intention.yaml`, `technique.yaml` | en place |
-| 3 | Matrice de flux | auteur ; équipe infra (adresses internes, génération) | intention, technique, fiche de qualification, code | `flux.yaml`, d'où l'équipe infra génère les politiques réseau | proposé, à valider |
+| 3 | Matrice de flux | auteur ; équipe infra (adresses internes, génération) | intention, technique, fiche de qualification, code | `flux.yaml`, d'où l'équipe infra génère les politiques réseau | en place |
 | 4 | Dossier d'exploitation | auteur, équipe infra | — | dossier d'exploitation | à faire |
 | 5 | Palier Kubernetes | outils | Dockerfile, manifestes, qualification | rapport | à faire |
 | 6 | Chaîne d'approvisionnement | outils | manifestes, lockfiles, images | SBOM, rapport | à faire |
@@ -274,10 +273,10 @@ Composants transverses :
 | Formats intention et technique | en place |
 | Format des constats (rapport, constat, corrigé) | en place |
 | Format de la qualification et règle de calcul du palier | en place |
-| Formats de la matrice de flux et du fichier de plateforme | proposés, à valider |
+| Formats de la matrice de flux et du fichier de plateforme | en place |
 | Formats du dossier d'exploitation et de l'avis | à faire |
 | Scripts `dossier.py`, `constats.py` et `qualification.py` | en place |
-| Script `flux.py` : validation, écarts, génération des politiques réseau | proposé, à valider |
+| Script `flux.py` : validation, écarts, génération des politiques réseau | en place |
 | Image conteneur d'outillage (Semgrep, gitleaks, Trivy…) | à faire |
 | Corpus de test | un cas : `notes-de-frais` |
 

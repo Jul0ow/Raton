@@ -34,8 +34,10 @@ Dans Claude Code :
 Les skills se lancent ainsi :
 
 - `/raton:qualification` (ou `/raton:qualification renseigner`, `/raton:qualification valider <fiche>`), hors du dépôt de l'application : la fiche appartient à l'équipe infra ;
-- `/raton:dat` (ou `/raton:dat intention`, `/raton:dat technique`), depuis le dépôt de l'application à décrire ;
-- `/raton:matrice-flux [<fiche de qualification>]`, depuis le dépôt de l'application, une fois l'intention validée et la partie technique écrite.
+- `/raton:dat <fiche de qualification>` (ou `/raton:dat intention <fiche>`, `/raton:dat technique <fiche>`), depuis le dépôt de l'application à décrire ;
+- `/raton:matrice-flux <fiche de qualification>`, depuis le dépôt de l'application, une fois l'intention validée et la partie technique écrite.
+
+Les skills DAT et matrice de flux ne démarrent pas sans la fiche de qualification validée : le métier en a reçu une copie de l'équipe infra.
 
 ## Tests
 

@@ -1,6 +1,6 @@
 # Format de la matrice de flux
 
-Statut : **validé en partie** le 2026-11-13 (format v0). Deux points restent à trancher, listés à la fin dans [Décisions](#décisions) : les renvois, reformulés, et le nom des pods, revu pour l'administration.
+Statut : **validé** le 2026-11-13 (format v0). Les décisions sont rappelées à la fin, dans [Décisions](#décisions).
 
 La matrice de flux déclare toutes les connexions réseau de l'application : celles qu'elle reçoit, celles qu'elle ouvre, et celles qu'échangent ses composants. Elle sert deux fois :
 
@@ -395,17 +395,14 @@ Validées le 2026-11-13 :
 5. Une couverture (flux non déclaré, échange sans flux…) signalée par des écarts à examiner, comme `dossier.py ecarts`, plutôt que par des erreurs de format.
 6. Un fichier de plateforme, tenu par l'équipe infra, qui sépare la matrice du cluster.
 7. Cilium comme CNI par défaut ; le mode standard, avec un proxy sortant, reste disponible.
+8. Des renvois aux échanges et aux interconnexions pour les seuls flux vers un service tiers ou un autre système. Les flux vers les stockages de l'application, entre ses composants, et vers ou depuis la plateforme n'en citent pas, parce que ni l'intention ni la fiche ne les décrivent : voir le paragraphe « Renvois » de [Contenu](#contenu).
+9. Un namespace par application et un refus par défaut. Les pods portent un nom lisible, déclaré dans la partie technique (`api`), plutôt que l'identifiant `C01`. Les politiques reprennent ce nom (`raton-api`) et rappellent l'identifiant et le libellé en annotation ; le rendu donne la grille complète.
 
 Demandés à la même relecture :
 
 - définir la plateforme, et distinguer interconnexion, échange et flux : voir [Vocabulaire](#vocabulaire) ;
 - l'entrée externe ne se limite pas à Internet : la partie technique emploie désormais l'exposition `externe` de la qualification, au lieu de `internet` ;
-- le skill demande la fiche de qualification avant de commencer, et ne va pas plus loin sans elle.
-
-À valider :
-
-1. **Les renvois**, reformulés. Seuls les flux vers un service tiers ou un autre système citent un échange et une interconnexion. Les flux vers les stockages de l'application, entre ses composants, et vers ou depuis la plateforme n'en citent pas, parce que ni l'intention ni la fiche ne les décrivent : voir le paragraphe « Renvois » de [Contenu](#contenu).
-2. **Le nom des pods**, revu pour l'administration. Toujours un namespace par application et un refus par défaut. Mais les pods portent un nom lisible, déclaré dans la partie technique (`api`), plutôt que l'identifiant `C01`. Les politiques reprennent ce nom (`raton-api`) et rappellent l'identifiant et le libellé en annotation ; le rendu donne la grille complète.
+- le skill demande la fiche de qualification avant de commencer, et ne va pas plus loin sans elle. Le skill DAT applique la même règle.
 
 ## Reporté
 

@@ -54,7 +54,7 @@ Elle est écrite en langage métier, sans vocabulaire technique. Le porteur mét
 
 Le champ `sens` d'un échange donne le sens des **données** (`recoit`, `envoie`, `les_deux`), comme le métier le pense. Le sens des **connexions** (qui initie) est porté par la matrice de flux.
 
-Le champ `interconnexions` d'un échange cite les [interconnexions de la fiche de qualification](qualification.md#interconnexions) par lesquelles il passe. La fiche n'est pas du code : le métier peut l'avoir sous les yeux pendant la phase intention. Un échange qui ne correspond à aucune interconnexion révèle une qualification incomplète. On l'écrit alors sans ce champ, et on fait requalifier l'application. Le champ est facultatif pour le schéma, qui reste compatible avec les intentions déjà écrites ; c'est `qualification.py valider --intention` qui exige un renvoi pour chaque échange.
+Le champ `interconnexions` d'un échange cite les [interconnexions de la fiche de qualification](qualification.md#interconnexions) par lesquelles il passe. La fiche n'est pas du code : le métier peut l'avoir sous les yeux pendant la phase intention. Le skill DAT exige d'ailleurs la fiche validée avant de commencer, quelle que soit la phase. Un échange qui ne correspond à aucune interconnexion révèle une qualification incomplète. On l'écrit alors sans ce champ, et on fait requalifier l'application. Le champ est facultatif pour le schéma, qui reste compatible avec les intentions déjà écrites ; c'est `qualification.py valider --intention` qui exige un renvoi pour chaque échange.
 
 Tant que la section `validation` est absente, l'intention est un brouillon : on peut la valider contre le schéma et la rendre lisible, mais la revue ne peut pas s'appuyer dessus.
 
