@@ -55,14 +55,14 @@ sequenceDiagram
   autonumber
   actor M as Porteur métier
   participant R as Raton
-  actor E as Équipe infra
+  actor E as DevOps
   actor C as Change manager
   actor S as RSSI
 
   Note over M: Application produite avec une IA
   M->>R: Qualification (1) : répond aux questions
   E->>R: Valide la qualification
-  Note over E: Fiche rangée dans<br/>le dépôt de l'équipe infra
+  Note over E: Fiche rangée dans<br/>le dépôt de l'équipe DevOps
   R-->>M: Palier d'exigence et contrôles obligatoires
   M->>R: DAT, phase intention (2), sans le code
   R-->>M: Rendu lisible de l'intention
@@ -84,8 +84,16 @@ sequenceDiagram
     E->>R: Revue différentielle (11)
     R-->>E: Projet d'avis et note sur le nouveau SHA
   end
-  E->>C: Avis argumenté
-  C-->>E: Signe la mise en production :<br/>Go, Go avec réserves ou No-Go
+  loop Jusqu'à une mise en production autorisée
+    E->>C: Avis argumenté
+    C-->>E: Signe la mise en production :<br/>Go, Go avec réserves ou No-Go
+    opt No-Go : mise en production refusée
+      E-->>M: Motifs du refus, constats à corriger, note
+      M->>E: Version corrigée, nouveau SHA
+      E->>R: Revue différentielle (11)
+      R-->>E: Projet d'avis et note sur le nouveau SHA
+    end
+  end
   Note over S: Accès à tout le dossier,<br/>à chaque étape, sans signer
   E-->>M: Avis signé et note
   E->>E: Déploie l'application
@@ -95,8 +103,17 @@ sequenceDiagram
 Trois moments humains structurent le parcours :
 
 - **le métier atteste son intention** (étape 6) : c'est la référence de toute la revue ;
-- **l'équipe infra tranche** les divergences entre passes et entre relecteurs (étape 13) ;
+- **l'équipe DevOps tranche** les divergences entre passes et entre relecteurs (étape 13) ;
 - **le change manager autorise la mise en production** en signant l'avis sur un commit précis (étape 20).
+
+Si le change manager refuse la mise en production (No-Go), le parcours repart sur les corrections (étapes 21 à 24) :
+
+- l'équipe DevOps transmet au métier les motifs du refus, avec les constats à corriger et la note ;
+- le métier corrige et soumet une nouvelle version, sur un nouveau SHA ;
+- la revue différentielle porte sur le delta entre le commit refusé et la nouvelle version, et vérifie que chaque motif du refus est traité ;
+- la nouvelle version reçoit un nouvel avis et une nouvelle note, et revient devant le change manager.
+
+La boucle se répète jusqu'à une mise en production autorisée. L'avis garde la décision du change manager et, pour un refus, ses motifs : la version suivante doit y répondre. Le format de l'avis, qui portera ces motifs, reste à définir avec la synthèse (skill 12).
 
 Le RSSI ne signe pas, pour l'instant, mais il a accès à tout le dossier de l'application : fiche de qualification, DAT, matrice de flux, rapports, avis et note (voir [Rôles](#rôles)).
 
@@ -111,7 +128,7 @@ Le métier et l'auteur (souvent la même personne) préparent le dossier avant d
 ```mermaid
 flowchart LR
   M(("Porteur<br/>métier"))
-  E(("Équipe<br/>infra"))
+  E(("DevOps"))
   CODE[("Dépôt de l'application<br/>au commit SHA")]
 
   Q["1 · Qualification"]
@@ -120,12 +137,12 @@ flowchart LR
   EXP["4 · Dossier d'exploitation"]
   PC["13 · Pré-contrôle"]
 
-  QF[/"Fiche de qualification<br/>palier, contrôles obligatoires<br/>dépôt de l'équipe infra"/]
+  QF[/"Fiche de qualification<br/>palier, contrôles obligatoires<br/>dépôt de l'équipe DevOps"/]
   INT[/".raton/intention.yaml"/]
   TEC[/".raton/technique.yaml"/]
   EXF[/".raton/ dossier d'exploitation"/]
   FLX[/".raton/flux.yaml"/]
-  PLT[/"Fichier de plateforme<br/>dépôt de l'équipe infra"/]
+  PLT[/"Fichier de plateforme<br/>dépôt de l'équipe DevOps"/]
   NP[/"Politiques réseau<br/>générées au déploiement"/]
   MQ[/"Liste des manques"/]
 
@@ -166,7 +183,7 @@ flowchart LR
 
 ### Contrôler et conclure
 
-L'équipe infra lance le pipeline sur le commit soumis. La fiche de qualification décide des contrôles à exécuter ; chacun produit un rapport au format commun.
+L'équipe DevOps lance le pipeline sur le commit soumis. La fiche de qualification décide des contrôles à exécuter ; chacun produit un rapport au format commun.
 
 ```mermaid
 flowchart LR
@@ -187,7 +204,7 @@ flowchart LR
   AVIS[/"Avis sur le SHA<br/>Go · réserves · No-Go"/]
   NOTE[/"Note de l'application<br/>A à E, points à gagner"/]
   DIFF["11 · Revue différentielle"]
-  E(("Équipe<br/>infra"))
+  E(("DevOps"))
   C(("Change<br/>manager"))
   S(("RSSI"))
   M(("Porteur<br/>métier"))
@@ -205,9 +222,11 @@ flowchart LR
   SYN --> AVIS
   RAP --> NOTE
   QF -.->|"contrôles attendus"| NOTE
-  C -->|"signe"| AVIS
+  C -->|"signe ou refuse"| AVIS
   S -.->|"accès au dossier"| AVIS
   NOTE -.->|"motive"| M
+  AVIS -.->|"No-Go : motifs du refus"| M
+  M -->|"corrige : nouveau SHA"| DIFF
   AVIS -->|"version suivante"| DIFF
   DIFF -->|"rapports sur le delta"| RAP
 
@@ -216,8 +235,8 @@ flowchart LR
   classDef propose fill:#fff3bf,stroke:#e67700,color:#000
   classDef afaire fill:#f8f9fa,stroke:#868e96,color:#000,stroke-dasharray:4 3
   class E,C,S,M humain
-  class QF,RAP fait
-  class DET,NOTE propose
+  class QF,RAP,NOTE fait
+  class DET propose
   class AG,DYN,SBOM,SYN,AVIS,DIFF afaire
 ```
 
@@ -234,7 +253,7 @@ flowchart LR
   AV["Relecteur aveugle<br/>plusieurs passes"]
   INF["Relecteur informé<br/>plusieurs passes"]
   J["Juge"]
-  E(("Équipe<br/>infra"))
+  E(("DevOps"))
 
   RECON[/"Reconstruction<br/>technique + flux"/]
   RI[/"Rapports : écarts,<br/>exclusions, failles"/]
@@ -259,24 +278,24 @@ flowchart LR
 
 - Le **relecteur aveugle** ne lit que le code et décrit ce que fait l'application, dans le format de la partie technique et de la matrice de flux.
 - Le **relecteur informé** confronte le code à l'intention : fonctions non décrites, exclusions violées, failles.
-- Le **juge** compare la reconstruction aveugle à ce que l'auteur a déclaré, et les passes entre elles. Un flux que l'aveugle a trouvé et que le dossier ne déclare pas devient un constat. Une divergence entre passes va à l'équipe infra.
+- Le **juge** compare la reconstruction aveugle à ce que l'auteur a déclaré, et les passes entre elles. Un flux que l'aveugle a trouvé et que le dossier ne déclare pas devient un constat. Une divergence entre passes va à l'équipe DevOps.
 
 ## 4. Récapitulatif des skills
 
 | # | Skill | Qui intervient | Lit | Produit | État |
 |---|---|---|---|---|---|
-| 1 | Qualification | métier (répond), équipe infra (valide) | réponses ; référentiel des applications s'il existe, sinon l'équipe infra ; intention pour le recoupement | fiche de qualification, rangée par l'équipe infra : interconnexions, palier, contrôles obligatoires | en place |
+| 1 | Qualification | métier (répond), équipe DevOps (valide) | réponses ; référentiel des applications s'il existe, sinon l'équipe DevOps ; intention pour le recoupement | fiche de qualification, rangée par l'équipe DevOps : interconnexions, palier, contrôles obligatoires | en place |
 | 2 | DAT | métier (intention), auteur avec une IA (technique) | entretien ; code pour la partie technique | `intention.yaml`, `technique.yaml` | en place |
-| 3 | Matrice de flux | auteur ; équipe infra (adresses internes, génération) | intention, technique, fiche de qualification, code | `flux.yaml`, d'où l'équipe infra génère les politiques réseau | en place |
-| 4 | Dossier d'exploitation | auteur, équipe infra | — | dossier d'exploitation | à faire |
+| 3 | Matrice de flux | auteur ; équipe DevOps (adresses internes, génération) | intention, technique, fiche de qualification, code | `flux.yaml`, d'où l'équipe DevOps génère les politiques réseau | en place |
+| 4 | Dossier d'exploitation | auteur, équipe DevOps | — | dossier d'exploitation | à faire |
 | 5 | Palier Kubernetes | outils | Dockerfile, manifestes, qualification | rapport | à faire |
 | 6 | Chaîne d'approvisionnement | outils | manifestes, lockfiles, images | SBOM, rapport | à faire |
-| 7 | Secrets | outils (gitleaks), par le pipeline de l'équipe infra | code, historique git, fiche | rapport, manifeste d'exécution | proposé |
+| 7 | Secrets | outils (gitleaks), par le pipeline de l'équipe DevOps | code, historique git, fiche | rapport, manifeste d'exécution | proposé |
 | 8 | Identité et accès | outils, agent | code, partie technique | rapport | à faire |
-| 9 | Revue par agents | agents ; l'équipe infra tranche | code ; dossier pour l'informé et le juge | reconstruction, rapports | à faire |
+| 9 | Revue par agents | agents ; l'équipe DevOps tranche | code ; dossier pour l'informé et le juge | reconstruction, rapports | à faire |
 | 10 | Analyse dynamique | outils, en bac à sable | application déployée, `flux.yaml` | rapport des flux observés | à faire |
-| 11 | Revue différentielle | agents ; équipe infra | avis précédent, delta entre commits | rapports, nouvel avis | à faire |
-| 12 | Synthèse et avis | agent ; équipe infra ; change manager (signe) ; RSSI (accès) | rapports, qualification | avis Go, Go avec réserves ou No-Go ; note de l'application (`note.py`, proposée) | à faire |
+| 11 | Revue différentielle | agents ; équipe DevOps | avis précédent, motifs d'un refus, delta entre commits | rapports, nouvel avis et nouvelle note | à faire |
+| 12 | Synthèse et avis | agent ; équipe DevOps ; change manager (signe ou refuse) ; RSSI (accès) | rapports, qualification | avis Go, Go avec réserves ou No-Go ; note de l'application (`note.py`) | à faire |
 | 13 | Pré-contrôle | métier, seul | dossier, qualification | liste des manques | à faire |
 
 Composants transverses :
@@ -293,7 +312,7 @@ Composants transverses :
 | Image d'outillage et pipeline GitLab : deux runners dédiés, préparation puis analyse (gitleaks, Trivy ; osv-scanner, Opengrep à venir) | proposé |
 | Script `controles.py` et format du manifeste d'exécution | proposé |
 | Ressources et cycle de vie des données dans la partie technique du DAT | proposé |
-| Notation de l'application : règle publique, script `note.py` | proposé |
+| Notation de l'application : règle publique, script `note.py` | en place |
 | Corpus de test | un cas : `notes-de-frais` |
 
 ## Rôles
@@ -303,11 +322,11 @@ Rôles retenus le 2026-11-10, comme hypothèse de travail en attendant une déci
 | Rôle | Qui | Ce qu'il fait |
 |---|---|---|
 | Porteur métier | la personne ou l'équipe métier qui a produit l'application, souvent l'auteur du code | répond à la qualification, rédige et atteste l'intention, constitue le dossier, corrige les constats |
-| Équipe de revue et exploitation | **l'équipe infra** | valide la qualification (reçue par demande de fusion ou par ticket), en précisant les droits et la sensibilité des interconnexions, et range la fiche dans son dépôt ; lance le pipeline, tranche les divergences entre relecteurs, présente l'avis au change manager ; puis déploie l'application, applique les politiques réseau qu'il génère depuis la matrice de flux et le fichier de plateforme qu'il tient, et ne crée que les comptes de service prévus par les interconnexions de la fiche |
+| Équipe de revue et exploitation | **l'équipe DevOps** | valide la qualification (reçue par demande de fusion ou par ticket), en précisant les droits et la sensibilité des interconnexions, et range la fiche dans son dépôt ; lance le pipeline, tranche les divergences entre relecteurs, présente l'avis au change manager ; puis déploie l'application, applique les politiques réseau qu'elle génère depuis la matrice de flux et le fichier de plateforme qu'elle tient, et ne crée que les comptes de service prévus par les interconnexions de la fiche |
 | Signataire | **le change manager**, pour l'instant | signe l'avis (Go, Go avec réserves, No-Go) sur un commit précis : c'est l'autorisation de mise en production |
 | Sécurité | **le RSSI** | a accès à tout le dossier de chaque application : fiche de qualification, DAT, matrice de flux, rapports, avis et note ; ne signe pas |
 | Mainteneurs de Raton | l'équipe qui développe la bibliothèque | construisent les cas du corpus, écrivent leurs corrigés, mesurent Raton |
 
-La qualification est validée par l'équipe infra et pas seulement par le métier : l'auteur a intérêt à sous-évaluer la sensibilité de son application pour alléger les contrôles. Pour la même raison, la fiche validée vit dans un dépôt de l'équipe infra et non dans celui de l'application, et le palier se calcule par une règle publique au lieu de se négocier (voir le [format de la qualification](formats/qualification.md)).
+La qualification est validée par l'équipe DevOps et pas seulement par le métier : l'auteur a intérêt à sous-évaluer la sensibilité de son application pour alléger les contrôles. Pour la même raison, la fiche validée vit dans un dépôt de l'équipe DevOps et non dans celui de l'application, et le palier se calcule par une règle publique au lieu de se négocier (voir le [format de la qualification](formats/qualification.md)).
 
-Le dossier d'une application est réparti entre deux dépôts : le `.raton/` (DAT, matrice de flux) vit dans le dépôt de l'application, la fiche de qualification et, à terme, les rapports, les avis et les notes dans le dépôt de l'équipe infra. L'accès du RSSI suppose donc un droit de lecture sur les deux. Il lui permet de suivre une application avant même la signature, par exemple dès la validation de la qualification.
+Le dossier d'une application est réparti entre deux dépôts : le `.raton/` (DAT, matrice de flux) vit dans le dépôt de l'application, la fiche de qualification et, à terme, les rapports, les avis et les notes dans le dépôt de l'équipe DevOps. L'accès du RSSI suppose donc un droit de lecture sur les deux. Il lui permet de suivre une application avant même la signature, par exemple dès la validation de la qualification.

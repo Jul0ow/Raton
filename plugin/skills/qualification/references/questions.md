@@ -32,7 +32,7 @@ Pour chaque système :
 - `zone` : est-il hors de l'entreprise, ou joint par le réseau d'un partenaire ? Si oui, `externe`.
 - `acces` : l'application se contente-t-elle de consulter (`lecture`) ? Crée-t-elle, modifie-t-elle ou supprime-t-elle des informations, ou déclenche-t-elle des actions comme un envoi ou un paiement (`ecriture`) ? Gère-t-elle le système lui-même : comptes, droits, configuration (`administration`) ? S'il ne sait pas : `a_verifier`.
 - `nature` : par une API, en lisant directement la base, par des fichiers, par courriel ? S'il ne sait pas, ce qui est courant : `a_verifier`.
-- `sensible` : `a_verifier`, sauf si un référentiel des applications le donne. Faute de référentiel, c'est à l'équipe infra de le dire.
+- `sensible` : `a_verifier`, sauf si un référentiel des applications le donne. Faute de référentiel, c'est à l'équipe DevOps de le dire.
 
 Ne compte pas les stockages propres de l'application, ni les services communs à toutes les applications : authentification par le compte de l'entreprise, gestionnaire de secrets, journalisation, supervision.
 
@@ -92,7 +92,7 @@ Pose la question de chaque axe, laisse le métier répondre, puis propose le niv
 
 ## Signes de sous-évaluation
 
-À vérifier pendant l'entretien, puis par l'équipe infra pendant la validation :
+À vérifier pendant l'entretien, puis par l'équipe DevOps pendant la validation :
 
 - des données personnelles « non » alors que l'application gère des dossiers, des demandes ou des comptes de personnes autres que ses utilisateurs ;
 - une confidentialité de niveau 1 ou 2 pour des informations sur des personnes, des montants, des contrats ou des documents internes ;
@@ -126,7 +126,7 @@ interconnexions:               # liste vide s'il n'y en a aucune
     zone: interne              # interne | externe | a_verifier
     nature: a_verifier         # api | base_de_donnees | fichiers | courriel | autre | a_verifier
     acces: lecture             # lecture | ecriture | administration | a_verifier
-    sensible: a_verifier       # oui | non | a_verifier : l'équipe infra tranche
+    sensible: a_verifier       # oui | non | a_verifier : l'équipe DevOps tranche
 donnees_personnelles:
   niveau: oui                  # non | oui | sensibles ; si non, rien d'autre
   personnes: [salariés]
@@ -137,5 +137,5 @@ dicp:
   confidentialite: { niveau: …, motif: … }
   preuve: { niveau: …, motif: … }
 # exigences : recopiées depuis « qualification.py calculer »
-# validation : ajoutée par l'équipe infra seulement
+# validation : ajoutée par l'équipe DevOps seulement
 ```

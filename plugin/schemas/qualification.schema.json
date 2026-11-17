@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:raton:schema:qualification:v0",
   "title": "Fiche de qualification",
-  "description": "Classe une application : exposition, utilisateurs, données personnelles, besoins DICP. Renseignée par le métier, validée par l'équipe infra. Le palier d'exigence et les contrôles obligatoires en découlent par une règle déterministe (qualification.py calculer).",
+  "description": "Classe une application : exposition, utilisateurs, données personnelles, besoins DICP. Renseignée par le métier, validée par l'équipe DevOps. Le palier d'exigence et les contrôles obligatoires en découlent par une règle déterministe (qualification.py calculer).",
   "type": "object",
   "additionalProperties": false,
   "required": ["format", "application", "exposition", "utilisateurs", "interconnexions", "donnees_personnelles", "dicp"],
@@ -19,7 +19,7 @@
           "type": "string",
           "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
           "maxLength": 64,
-          "description": "Identifiant court et stable de l'application ; nomme son répertoire dans le dépôt de l'équipe infra."
+          "description": "Identifiant court et stable de l'application ; nomme son répertoire dans le dépôt de l'équipe DevOps."
         },
         "nom": { "$ref": "#/$defs/texte_court" },
         "objet": { "$ref": "#/$defs/texte_long" },
@@ -71,7 +71,7 @@
           },
           "sensible": {
             "enum": ["oui", "non", "a_verifier"],
-            "description": "Sensibilité du système cible : selon le référentiel des applications s'il existe, sinon selon l'équipe infra."
+            "description": "Sensibilité du système cible : selon le référentiel des applications s'il existe, sinon selon l'équipe DevOps."
           }
         }
       }
@@ -113,7 +113,7 @@
     },
 
     "exigences": {
-      "description": "Résultat de qualification.py calculer, que l'équipe infra peut relever. Obligatoire dès que la fiche est validée.",
+      "description": "Résultat de qualification.py calculer, que l'équipe DevOps peut relever. Obligatoire dès que la fiche est validée.",
       "type": "object",
       "additionalProperties": false,
       "required": ["palier", "controles"],
@@ -133,14 +133,14 @@
     },
 
     "validation": {
-      "description": "Absente tant que l'équipe infra n'a pas validé : la fiche est alors un brouillon, inutilisable par le pipeline.",
+      "description": "Absente tant que l'équipe DevOps n'a pas validé : la fiche est alors un brouillon, inutilisable par le pipeline.",
       "type": "object",
       "additionalProperties": false,
       "required": ["version", "renseigne_par", "valide_par", "date"],
       "properties": {
         "version": { "type": "integer", "minimum": 1 },
         "renseigne_par": { "$ref": "#/$defs/personne", "description": "La personne du métier qui a répondu." },
-        "valide_par": { "$ref": "#/$defs/personne", "description": "Le membre de l'équipe infra qui valide." },
+        "valide_par": { "$ref": "#/$defs/personne", "description": "Le membre de l'équipe DevOps qui valide." },
         "date": { "$ref": "#/$defs/date" }
       }
     }

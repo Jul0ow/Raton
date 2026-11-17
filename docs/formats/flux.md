@@ -5,7 +5,7 @@ Statut : **validé** le 2026-11-13 (format v0). Les décisions sont rappelées �
 La matrice de flux déclare toutes les connexions réseau de l'application : celles qu'elle reçoit, celles qu'elle ouvre, et celles qu'échangent ses composants. Elle sert deux fois :
 
 - **pendant la revue**, elle décrit les flux que le juge compare à la reconstruction aveugle, et que l'analyse dynamique compare aux connexions observées ;
-- **au déploiement**, l'équipe infra en génère les politiques réseau. Elles refusent tout par défaut : un flux absent de la matrice est bloqué en production, même si la revue l'a manqué.
+- **au déploiement**, l'équipe DevOps en génère les politiques réseau. Elles refusent tout par défaut : un flux absent de la matrice est bloqué en production, même si la revue l'a manqué.
 
 Les schémas font foi : [`flux.schema.json`](../../plugin/schemas/flux.schema.json) pour la matrice, [`plateforme.schema.json`](../../plugin/schemas/plateforme.schema.json) pour le fichier de plateforme. Le skill [`matrice-flux`](../../plugin/skills/matrice-flux/SKILL.md) aide l'auteur à remplir la matrice. Le script [`flux.py`](../../plugin/scripts/flux.py) la valide, la confronte au dossier et génère les politiques.
 
@@ -13,13 +13,13 @@ Les schémas font foi : [`flux.schema.json`](../../plugin/schemas/flux.schema.js
 
 ### La plateforme
 
-La **plateforme** est l'ensemble des services communs que l'équipe infra fournit à toutes les applications qu'elle héberge. Aucune application ne les possède ni ne les gère elle-même :
+La **plateforme** est l'ensemble des services communs que l'équipe DevOps fournit à toutes les applications qu'elle héberge. Aucune application ne les possède ni ne les gère elle-même :
 
 - les **points d'entrée** par lesquels arrivent les utilisateurs : l'entrée interne pour ceux du réseau de l'entreprise, l'entrée externe pour ceux qui viennent d'un réseau que l'entreprise ne maîtrise pas (Internet, réseau d'un partenaire, extranet) ;
 - le **SSO** de l'entreprise, le **gestionnaire de secrets**, la **journalisation** et la **supervision** ;
 - le **DNS** du cluster.
 
-Ce sont, avec les points d'entrée et le DNS, les « services d'infrastructure communs » que la [fiche de qualification](qualification.md#interconnexions) exclut de ses interconnexions. La matrice les nomme (`plateforme: sso`) sans dire où ils se trouvent : c'est le [fichier de plateforme](#le-fichier-de-plateforme), tenu par l'équipe infra, qui donne leur emplacement et la façon dont le cluster filtre le réseau.
+Ce sont, avec les points d'entrée et le DNS, les « services d'infrastructure communs » que la [fiche de qualification](qualification.md#interconnexions) exclut de ses interconnexions. La matrice les nomme (`plateforme: sso`) sans dire où ils se trouvent : c'est le [fichier de plateforme](#le-fichier-de-plateforme), tenu par l'équipe DevOps, qui donne leur emplacement et la façon dont le cluster filtre le réseau.
 
 ### Interconnexion, échange, flux
 
@@ -29,7 +29,7 @@ Trois notions voisines, tenues dans trois documents différents, répondent à t
 |---|---|---|---|
 | Document | fiche de qualification | intention | matrice de flux |
 | Question | avec quel système l'application communique-t-elle, et avec quels droits ? | quelles données passent, dans quel sens, et pourquoi ? | quelle connexion réseau, ouverte par qui, vers quelle adresse et quel port ? |
-| Écrit par | le métier, précisé et validé par l'équipe infra | le métier, sans le code | l'auteur, d'après le code |
+| Écrit par | le métier, précisé et validé par l'équipe DevOps | le métier, sans le code | l'auteur, d'après le code |
 | Sert à | calculer le palier, borner les comptes de service | servir de référence à la revue | générer les politiques réseau |
 
 Pour le service d'IA de l'application `notes-de-frais` :
@@ -44,7 +44,7 @@ Un échange se réalise par un ou plusieurs flux : un appel d'API, plus un rappe
 
 - **Devenir un contrôle.** Les politiques réseau sont générées depuis la matrice, et depuis elle seule. Déclarer un flux revient à en demander l'ouverture ; l'omettre revient à le bloquer.
 - **Porter le sens des connexions.** Une politique réseau filtre selon qui ouvre la connexion. Chaque flux dit donc qui l'ouvre (`de`) et qui la reçoit (`vers`). Le sens des données reste dans l'intention : l'application envoie un justificatif au service d'IA, qui renvoie un montant. Cela fait un seul flux sortant pour un échange `les_deux`.
-- **Justifier chaque flux.** Un flux vers un système que l'application ne possède pas renvoie à l'échange de l'intention qu'il réalise, et à l'interconnexion de la fiche de qualification par laquelle il passe. Le juge vérifie des références au lieu de comparer de la prose, et l'équipe infra voit pourquoi elle ouvre chaque flux.
+- **Justifier chaque flux.** Un flux vers un système que l'application ne possède pas renvoie à l'échange de l'intention qu'il réalise, et à l'interconnexion de la fiche de qualification par laquelle il passe. Le juge vérifie des références au lieu de comparer de la prose, et l'équipe DevOps voit pourquoi elle ouvre chaque flux.
 - **Être produite en aveugle.** Le relecteur aveugle remplit une matrice dans le même format. Il ne connaît ni les échanges ni les interconnexions, donc ces renvois sont facultatifs dans le schéma.
 - **Se comparer aux flux observés.** Les destinations sont désignées comme l'analyse dynamique les voit : nom DNS ou bloc d'adresses, et port.
 - **Rester indépendante du CNI.** La matrice nomme les destinations. C'est le fichier de plateforme qui dit comment le cluster les filtre.
@@ -102,7 +102,7 @@ L'adresse s'écrit de l'une de ces façons :
 - `cidr` : un bloc d'adresses, comme `10.20.30.0/28`, ou `/32` pour une seule adresse.
 - `variable` : la variable de configuration par laquelle le code reçoit l'adresse.
   - À côté de `hote` ou de `cidr`, elle documente le lien avec le code.
-  - Seule, elle signale que l'adresse n'est pas encore connue. C'est souvent le cas pour le relecteur aveugle, ou pour un système interne dont seule l'équipe infra connaît l'adresse. La matrice est alors incomplète, et la génération refuse de produire des politiques tant que l'adresse n'est pas fixée.
+  - Seule, elle signale que l'adresse n'est pas encore connue. C'est souvent le cas pour le relecteur aveugle, ou pour un système interne dont seule l'équipe DevOps connaît l'adresse. La matrice est alors incomplète, et la génération refuse de produire des politiques tant que l'adresse n'est pas fixée.
 
 On écrit le nom d'hôte, jamais l'URL entière : une URL peut contenir une clé, comme le DSN de Sentry.
 
@@ -231,23 +231,23 @@ Il ne renvoie à aucun échange ni à aucune interconnexion, et `flux.py ecarts`
 | `flux_en_clair` | du `http` ou du `ldap` hors du namespace | — |
 | `bloc_large` | un bloc de plus de 65 536 adresses en IPv4 (préfixe plus court que /16), ou de préfixe plus court que /48 en IPv6 | — |
 
-Comme pour `dossier.py ecarts`, ce sont des points à examiner, pas des erreurs de format. L'auteur les règle avant de soumettre : il corrige le code ou la matrice, ou fait évoluer l'intention, ce qui demande une nouvelle validation. Un flux sans interconnexion ou une exposition sous-évaluée demandent en plus de faire requalifier l'application par l'équipe infra.
+Comme pour `dossier.py ecarts`, ce sont des points à examiner, pas des erreurs de format. L'auteur les règle avant de soumettre : il corrige le code ou la matrice, ou fait évoluer l'intention, ce qui demande une nouvelle validation. Un flux sans interconnexion ou une exposition sous-évaluée demandent en plus de faire requalifier l'application par l'équipe DevOps.
 
 Sur le corpus, la matrice soumise ne donne aucun écart : elle est cohérente avec le dossier, et l'écart se trouve entre le dossier et le code. Avec la partie technique exacte du [format du DAT](dat.md#partie-technique), qui liste le SDK Sentry, l'écart `service_sans_flux` apparaît pour `T04`.
 
 ## Génération des politiques réseau
 
-`flux.py generer` traduit la matrice en politiques Kubernetes, d'après le fichier de plateforme. L'équipe infra lance la génération au déploiement, depuis la matrice du commit approuvé, et applique le résultat. Les politiques ne vivent pas dans le dépôt de l'application : l'auteur ne peut pas les retoucher.
+`flux.py generer` traduit la matrice en politiques Kubernetes, d'après le fichier de plateforme. L'équipe DevOps lance la génération au déploiement, depuis la matrice du commit approuvé, et applique le résultat. Les politiques ne vivent pas dans le dépôt de l'application : l'auteur ne peut pas les retoucher.
 
 Hypothèses de déploiement :
 
 - un namespace par application, nommé d'après son code ;
-- chaque pod porte le nom de son composant ou de son stockage, tel que le donne la partie technique (`api`, `worker`, `postgres`), dans une étiquette que fixe la plateforme. Un nom lisible évite à l'équipe infra de tenir une grille de correspondance : elle lit `api` dans le cluster, là où `C01` l'obligerait à ouvrir le dossier. Le palier Kubernetes (skill 5) vérifiera que les manifestes posent cette étiquette ;
+- chaque pod porte le nom de son composant ou de son stockage, tel que le donne la partie technique (`api`, `worker`, `postgres`), dans une étiquette que fixe la plateforme. Un nom lisible évite à l'équipe DevOps de tenir une grille de correspondance : elle lit `api` dans le cluster, là où `C01` l'obligerait à ouvrir le dossier. Le palier Kubernetes (skill 5) vérifiera que les manifestes posent cette étiquette ;
 - tout est refusé par défaut, en entrée comme en sortie.
 
 ### Le fichier de plateforme
 
-L'équipe infra le tient à la racine de son dépôt. Il est commun à toutes les applications. Exemple, celui du corpus ([`corpus/plateforme.yaml`](../../corpus/plateforme.yaml)) :
+L'équipe DevOps le tient à la racine de son dépôt. Il est commun à toutes les applications. Exemple, celui du corpus ([`corpus/plateforme.yaml`](../../corpus/plateforme.yaml)) :
 
 ```yaml
 format: raton/plateforme/v0
@@ -378,7 +378,7 @@ python3 plugin/scripts/flux.py generer .raton/flux.yaml --dossier .raton --plate
 
 - `valider` contrôle le schéma, les règles et, avec les options, les renvois vers le dossier et la fiche.
 - `ecarts` liste les écarts du tableau ci-dessus.
-- `rendre` produit le rendu lisible que relisent l'auteur et l'équipe infra.
+- `rendre` produit le rendu lisible que relisent l'auteur et l'équipe DevOps.
 - `egress` liste les connexions que l'application ouvre hors de son namespace, pour un proxy sortant ou un pare-feu.
 - `generer` produit les politiques réseau ; la partie technique lui donne le nom des composants. Ses avertissements vont sur la sortie d'erreur.
 
@@ -393,7 +393,7 @@ Validées le 2026-11-13 :
 3. Cinq natures d'extrémités : composant, stockage, service tiers, autre système, service de la plateforme.
 4. Des destinations désignées par un nom DNS (joker d'un seul niveau, comme Cilium) ou par un bloc d'adresses. Une variable seule marque une adresse à fixer, et bloque la génération.
 5. Une couverture (flux non déclaré, échange sans flux…) signalée par des écarts à examiner, comme `dossier.py ecarts`, plutôt que par des erreurs de format.
-6. Un fichier de plateforme, tenu par l'équipe infra, qui sépare la matrice du cluster.
+6. Un fichier de plateforme, tenu par l'équipe DevOps, qui sépare la matrice du cluster.
 7. Cilium comme CNI par défaut ; le mode standard, avec un proxy sortant, reste disponible.
 8. Des renvois aux échanges et aux interconnexions pour les seuls flux vers un service tiers ou un autre système. Les flux vers les stockages de l'application, entre ses composants, et vers ou depuis la plateforme n'en citent pas, parce que ni l'intention ni la fiche ne les décrivent : voir le paragraphe « Renvois » de [Contenu](#contenu).
 9. Un namespace par application et un refus par défaut. Les pods portent un nom lisible, déclaré dans la partie technique (`api`), plutôt que l'identifiant `C01`. Les politiques reprennent ce nom (`raton-api`) et rappellent l'identifiant et le libellé en annotation ; le rendu donne la grille complète.

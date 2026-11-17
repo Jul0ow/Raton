@@ -29,7 +29,7 @@ from raton_formats import ErreurFormat, charger, md_inerte
 FORMAT = "raton/note/v0"
 
 # --- Règle ---------------------------------------------------------------------
-# Proposition du 2026-11-17, à valider : voir docs/formats/note.md. Toute
+# Validée le 2026-11-17 : voir docs/formats/note.md. Toute
 # modification change la note de toutes les applications.
 
 POINTS_PAR_AXE = 20
@@ -275,7 +275,7 @@ def charger_fiche(chemin):
     if erreurs:
         raise ErreurFormat(f"{chemin} : fiche non valide, lancer d'abord « qualification.py valider »")
     if "validation" not in fiche:
-        raise ErreurFormat(f"{chemin} : fiche non validée par l'équipe infra ; la note s'appuie sur ses contrôles obligatoires")
+        raise ErreurFormat(f"{chemin} : fiche non validée par l'équipe DevOps ; la note s'appuie sur ses contrôles obligatoires")
     return fiche
 
 

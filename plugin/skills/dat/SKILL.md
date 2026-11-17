@@ -15,7 +15,7 @@ Arguments : « $ARGUMENTS ». Ils peuvent contenir la phase (`intention` ou `tec
 
 **La fiche de qualification est obligatoire, quelle que soit la phase.** Si les arguments ne la donnent pas, demande-la avant toute autre chose, et ne passe pas à la suite sans elle : chaque échange de l'intention doit renvoyer aux interconnexions qu'elle liste, et le DAT décrit une application déjà qualifiée.
 
-- Le métier en a reçu une copie de l'équipe infra. S'il ne la retrouve pas, il la redemande à l'équipe infra.
+- Le métier en a reçu une copie de l'équipe DevOps. S'il ne la retrouve pas, il la redemande à l'équipe DevOps.
 - Si l'application n'a jamais été qualifiée, arrête-toi et propose le skill `qualification`.
 - Une fiche sans section `validation` est un brouillon : arrête-toi aussi, car ses interconnexions peuvent encore changer.
 
@@ -54,7 +54,7 @@ Ton interlocuteur est le porteur métier. Il ne lit pas de YAML et n'a pas à co
 
 1. Lis la fiche de qualification : ses interconnexions serviront au thème des échanges. Si `.raton/intention.yaml` existe, lis-le aussi : il s'agit d'une mise à jour. Tu repars de son contenu et tu ne réutilises jamais l'identifiant d'un élément supprimé.
 2. Mène l'entretien un thème à la fois, dans cet ordre : objet, profils, données, fonctions, échanges, exclusions. Reformule chaque réponse et fais-la confirmer avant de passer au thème suivant.
-3. Écris `.raton/intention.yaml` sans section `validation`, puis valide le fichier. Corrige les erreurs ; reprends les avertissements avec l'utilisateur. Lance ensuite `qualification.py valider` avec `--intention`, qui recoupe l'intention avec la fiche. Une erreur de recoupement se règle de deux façons : corriger l'intention si elle est fausse, ou faire requalifier l'application par l'équipe infra si c'est la fiche qui est en deçà. Tu ne modifies jamais la fiche.
+3. Écris `.raton/intention.yaml` sans section `validation`, puis valide le fichier. Corrige les erreurs ; reprends les avertissements avec l'utilisateur. Lance ensuite `qualification.py valider` avec `--intention`, qui recoupe l'intention avec la fiche. Une erreur de recoupement se règle de deux façons : corriger l'intention si elle est fausse, ou faire requalifier l'application par l'équipe DevOps si c'est la fiche qui est en deçà. Tu ne modifies jamais la fiche.
 4. Lance `rendre` et montre le rendu **tel quel**, sans le résumer ni le reformuler : le métier valide le contenu du fichier, pas ta description de ce contenu.
 5. Demande explicitement : le contenu est-il juste et complet ? Qui le valide ? Le valideur atteste-t-il que l'intention a été rédigée sans partir du code ? Si l'attestation n'est pas possible, n'écris pas de validation : l'intention ne peut pas servir de référence, et il faut la faire rédiger par quelqu'un qui n'a pas travaillé à partir du code.
 6. Après un oui explicite, ajoute la section `validation` (version précédente + 1, ou 1 ; date du jour) et valide de nouveau.

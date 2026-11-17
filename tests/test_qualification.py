@@ -219,13 +219,13 @@ class TestValidation(unittest.TestCase):
         for nom in ("Marie Durand", "  marie   DURAND "):
             f = fiche()
             f["validation"]["valide_par"]["nom"] = nom
-            self.assertTrue(any("équipe infra" in e for e in self.erreurs(f)), nom)
+            self.assertTrue(any("équipe DevOps" in e for e in self.erreurs(f)), nom)
 
     def test_validee_par_le_porteur_refusee(self):
         f = fiche()
         f["validation"]["renseigne_par"]["nom"] = "Jean Martin"
         f["validation"]["valide_par"]["nom"] = "Marie Durand"
-        self.assertTrue(any("équipe infra" in e for e in self.erreurs(f)))
+        self.assertTrue(any("équipe DevOps" in e for e in self.erreurs(f)))
 
     def test_personnes_et_volume_avec_donnees(self):
         for champ in ("personnes", "volume"):
@@ -374,7 +374,7 @@ class TestRendu(unittest.TestCase):
         self.assertIn("| externe : un palier de plus |", rendu)
         self.assertNotIn("Brouillon", rendu)
         self.assertNotIn("reste à vérifier", rendu)
-        self.assertIn("validée par Paul Lefèvre (Équipe infra)", rendu)
+        self.assertIn("validée par Paul Lefèvre (DevOps)", rendu)
 
     def test_rendu_brouillon(self):
         f = fiche()

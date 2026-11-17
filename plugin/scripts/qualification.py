@@ -7,10 +7,10 @@
 
   qualification.py valider FICHE [--intention INTENTION]   schéma, règles et recoupements avec l'intention
   qualification.py calculer FICHE                          palier calculé et contrôles obligatoires
-  qualification.py rendre FICHE                            rendu Markdown, pour le métier et l'équipe infra
+  qualification.py rendre FICHE                            rendu Markdown, pour le métier et l'équipe DevOps
 
 Le palier ne se décide pas : il se calcule par la règle ci-dessous, publique et
-déterministe. L'équipe infra peut le relever, jamais l'abaisser. La fiche est une
+déterministe. L'équipe DevOps peut le relever, jamais l'abaisser. La fiche est une
 donnée non fiable : le script ne fait que l'analyser.
 """
 
@@ -171,7 +171,7 @@ def coherence(fiche):
         if champs and validee:
             erreurs.append(f"interconnexion {i['id']} : {', '.join(champs)} à vérifier ; une fiche validée ne peut pas laisser ce point ouvert")
         elif champs:
-            avert.append(f"interconnexion {i['id']} : {', '.join(champs)} à vérifier par l'équipe infra ; compté au plus haut en attendant")
+            avert.append(f"interconnexion {i['id']} : {', '.join(champs)} à vérifier par l'équipe DevOps ; compté au plus haut en attendant")
 
     dp = fiche["donnees_personnelles"]
     conf = fiche["dicp"]["confidentialite"]["niveau"]
@@ -201,7 +201,7 @@ def coherence(fiche):
         v = fiche["validation"]
         noms_metier = (v["renseigne_par"]["nom"], fiche["application"]["porteur"]["nom"])
         if any(_meme_nom(v["valide_par"]["nom"], n) for n in noms_metier):
-            erreurs.append("validation : la fiche est validée par l'équipe infra, pas par le métier qui l'a renseignée")
+            erreurs.append("validation : la fiche est validée par l'équipe DevOps, pas par le métier qui l'a renseignée")
     else:
         avert.append("brouillon : pas de section validation, le pipeline ne peut pas s'appuyer sur cette fiche")
     return erreurs, avert
@@ -307,7 +307,7 @@ def rendre(fiche):
 
     lignes = [f"# {md_inerte(app['nom'])} — qualification", ""]
     if val is None:
-        lignes += ["> **Brouillon, non validé par l'équipe infra.**", ""]
+        lignes += ["> **Brouillon, non validé par l'équipe DevOps.**", ""]
     lignes += [
         md_inerte(app["objet"]),
         "",
@@ -377,7 +377,7 @@ def rendre(fiche):
 
     lignes += ["", "## Validation", ""]
     if val is None:
-        lignes.append("Pas encore validée par l'équipe infra.")
+        lignes.append("Pas encore validée par l'équipe DevOps.")
     else:
         lignes.append(
             f"Version {val['version']}, renseignée par {md_inerte(val['renseigne_par']['nom'])} "

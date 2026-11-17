@@ -9,7 +9,7 @@ Projet en démarrage : voir la [feuille de route](docs/feuille-de-route.md) et l
 | Chemin | Rôle |
 |---|---|
 | `plugin/` | le plugin Claude Code `raton` : skills, schémas, scripts |
-| `plugin/skills/qualification/` | skill de qualification : entretien avec le métier, validation par l'équipe infra |
+| `plugin/skills/qualification/` | skill de qualification : entretien avec le métier, validation par l'équipe DevOps |
 | `plugin/skills/dat/` | skill de co-rédaction du DAT |
 | `plugin/skills/matrice-flux/` | skill de rédaction de la matrice de flux |
 | `plugin/schemas/` | schémas communs : qualification, intention, technique, matrice de flux, plateforme, rapport de contrôle, constat, corrigé du corpus, manifeste d'exécution des contrôles, note de l'application |
@@ -37,15 +37,15 @@ Dans Claude Code :
 
 Les skills se lancent ainsi :
 
-- `/raton:qualification` (ou `/raton:qualification renseigner`, `/raton:qualification valider <fiche>`), hors du dépôt de l'application : la fiche appartient à l'équipe infra ;
+- `/raton:qualification` (ou `/raton:qualification renseigner`, `/raton:qualification valider <fiche>`), hors du dépôt de l'application : la fiche appartient à l'équipe DevOps ;
 - `/raton:dat <fiche de qualification>` (ou `/raton:dat intention <fiche>`, `/raton:dat technique <fiche>`), depuis le dépôt de l'application à décrire ;
 - `/raton:matrice-flux <fiche de qualification>`, depuis le dépôt de l'application, une fois l'intention validée et la partie technique écrite.
 
-Les skills DAT et matrice de flux ne démarrent pas sans la fiche de qualification validée : le métier en a reçu une copie de l'équipe infra.
+Les skills DAT et matrice de flux ne démarrent pas sans la fiche de qualification validée : le métier en a reçu une copie de l'équipe DevOps.
 
-La note de l'application n'est pas un skill non plus : l'équipe infra la calcule à la fin de la revue, avec `plugin/scripts/note.py` (voir le [format de la note](docs/formats/note.md)).
+La note de l'application n'est pas un skill non plus : l'équipe DevOps la calcule à la fin de la revue, avec `plugin/scripts/note.py` (voir le [format de la note](docs/formats/note.md)).
 
-Les contrôles déterministes ne sont pas des skills : l'équipe infra les lance par le pipeline GitLab de [`ci/raton.gitlab-ci.yml`](ci/raton.gitlab-ci.yml), inclus dans son propre dépôt (voir [contrôles déterministes](docs/controles.md)).
+Les contrôles déterministes ne sont pas des skills : l'équipe DevOps les lance par le pipeline GitLab de [`ci/raton.gitlab-ci.yml`](ci/raton.gitlab-ci.yml), inclus dans son propre dépôt (voir [contrôles déterministes](docs/controles.md)).
 
 ## Tests
 

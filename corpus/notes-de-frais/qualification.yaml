@@ -76,5 +76,5 @@ exigences:
 validation:
   version: 1
   renseigne_par: { nom: Marie Durand, entite: Direction financière }
-  valide_par: { nom: Paul Lefèvre, entite: Équipe infra }
+  valide_par: { nom: Paul Lefèvre, entite: DevOps }
   date: 2026-11-09

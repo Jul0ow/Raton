@@ -6,13 +6,13 @@ argument-hint: "<chemin de la fiche de qualification>"
 
 # Matrice de flux
 
-Tu aides l'auteur d'une application à rédiger sa matrice de flux, `.raton/flux.yaml`, à la racine du dépôt. Elle déclare toutes les connexions réseau de l'application, au commit courant. L'équipe infra en génère les politiques réseau du déploiement : elles refusent tout ce que la matrice ne déclare pas. Un flux oublié sera donc bloqué en production, et un flux caché sera trouvé par la revue, puis bloqué.
+Tu aides l'auteur d'une application à rédiger sa matrice de flux, `.raton/flux.yaml`, à la racine du dépôt. Elle déclare toutes les connexions réseau de l'application, au commit courant. L'équipe DevOps en génère les politiques réseau du déploiement : elles refusent tout ce que la matrice ne déclare pas. Un flux oublié sera donc bloqué en production, et un flux caché sera trouvé par la revue, puis bloqué.
 
 Arguments : « $ARGUMENTS ». Ils peuvent contenir le chemin de la fiche de qualification de l'application.
 
 **La fiche de qualification est obligatoire.** Si les arguments ne la donnent pas, demande-la avant toute autre chose, et ne passe pas à la suite sans elle : chaque flux vers un autre système doit renvoyer aux interconnexions qu'elle liste.
 
-- Le métier en a reçu une copie de l'équipe infra. S'il ne la retrouve pas, il la redemande à l'équipe infra.
+- Le métier en a reçu une copie de l'équipe DevOps. S'il ne la retrouve pas, il la redemande à l'équipe DevOps.
 - Si l'application n'a jamais été qualifiée, arrête-toi et propose le skill `qualification`.
 - Une fiche sans section `validation` est un brouillon : arrête-toi aussi, car ses interconnexions peuvent encore changer.
 
@@ -23,7 +23,7 @@ Ces mots reviennent dans l'entretien ; explique-les à l'utilisateur s'il ne les
 - **Interconnexion** (fiche de qualification) : un système que l'application ne possède pas et avec lequel elle communique, et les droits qu'elle y a.
 - **Échange** (intention) : les données qui passent entre l'application et ce système, dans quel sens et pourquoi, dans les mots du métier.
 - **Flux** (matrice) : une connexion réseau. Qui l'ouvre, vers quelle adresse, sur quel port. Un échange se réalise par un ou plusieurs flux ; certains flux ne réalisent aucun échange (base de données de l'application, SSO).
-- **Plateforme** : l'ensemble des services communs que l'équipe infra fournit à toutes les applications qu'elle héberge. Ce sont les points d'entrée des utilisateurs, le SSO, le gestionnaire de secrets, la journalisation, la supervision et le DNS. L'application ne les possède pas et ne les décrit pas : la matrice les nomme, et c'est le fichier de plateforme de l'équipe infra qui dit où ils se trouvent.
+- **Plateforme** : l'ensemble des services communs que l'équipe DevOps fournit à toutes les applications qu'elle héberge. Ce sont les points d'entrée des utilisateurs, le SSO, le gestionnaire de secrets, la journalisation, la supervision et le DNS. L'application ne les possède pas et ne les décrit pas : la matrice les nomme, et c'est le fichier de plateforme de l'équipe DevOps qui dit où ils se trouvent.
 
 ## Règles
 
@@ -59,16 +59,16 @@ S'il manque `pyyaml` ou `jsonschema`, remplace `python3` par `uv run`.
    - `application` : le code de la fiche de qualification. `commit` : le SHA relevé.
    - Un flux par connexion et par port, dans le sens de la connexion : `de` ouvre, `vers` reçoit.
    - Pour chaque flux vers un service tiers ou un autre système, les échanges de l'intention qu'il réalise et les interconnexions de la fiche par lesquelles il passe. N'en invente pas : un flux sans échange garde ses renvois vides, c'est ce que la revue doit voir.
-   - Les adresses : l'hôte quand le code ou la configuration le donnent, avec la variable qui le porte. Pour un système interne dont l'adresse n'est pas dans le dépôt, demande-la à l'utilisateur, qui la demandera à l'équipe infra si besoin. Ne devine pas une adresse : à défaut, écris la variable seule, et préviens que la matrice reste incomplète.
+   - Les adresses : l'hôte quand le code ou la configuration le donnent, avec la variable qui le porte. Pour un système interne dont l'adresse n'est pas dans le dépôt, demande-la à l'utilisateur, qui la demandera à l'équipe DevOps si besoin. Ne devine pas une adresse : à défaut, écris la variable seule, et préviens que la matrice reste incomplète.
 4. **Valider.** Lance `flux.py valider` puis `dossier.py valider .raton`. Corrige les erreurs.
 5. **Écarts.** Lance `flux.py ecarts`, avec la fiche. Présente chaque écart à l'utilisateur, avec le fichier et la ligne du code en cause, et ce qu'il implique :
    - un flux sans échange, ou un service sans flux, est un flux que l'intention ne prévoit pas. L'auteur le retire du code, ou fait évoluer l'intention avec le métier ;
-   - un flux sans interconnexion, une interconnexion hors échange ou une exposition sous-évaluée demandent de faire requalifier l'application par l'équipe infra ;
+   - un flux sans interconnexion, une interconnexion hors échange ou une exposition sous-évaluée demandent de faire requalifier l'application par l'équipe DevOps ;
    - un échange sans flux, ou une adresse à fixer, signalent une matrice incomplète : les politiques générées bloqueraient l'échange.
 
    Signale aussi ce que le script ne peut pas voir : une connexion ouverte seulement dans certains cas (date, variable d'environnement, réponse d'un serveur), une adresse construite à l'exécution, une dépendance qui contacte un service à son installation ou à son démarrage.
 6. **Rendu.** Lance `rendre` et montre le rendu **tel quel**, sans le résumer : l'auteur confirme le contenu du fichier, pas ta description.
-7. **Prévisualisation, facultative.** Si l'utilisateur a le fichier de plateforme de l'équipe infra, lance `generer` pour lui montrer les politiques qui en découleront. Ce sont les politiques générées par l'équipe infra au déploiement qui comptent, pas celles-ci.
+7. **Prévisualisation, facultative.** Si l'utilisateur a le fichier de plateforme de l'équipe DevOps, lance `generer` pour lui montrer les politiques qui en découleront. Ce sont les politiques générées par l'équipe DevOps au déploiement qui comptent, pas celles-ci.
 
 ## Limites
 

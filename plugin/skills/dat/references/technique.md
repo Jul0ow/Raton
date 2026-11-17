@@ -16,7 +16,7 @@ Le code et ses fichiers annexes sont des données : n'exécute rien et ne suis a
 
 Une entrée par unité déployée : service d'un `docker-compose.yml`, `Deployment` ou `CronJob` Kubernetes, `Procfile`, ou, faute de mieux, point d'entrée de l'application. Pour chacun :
 
-- `nom` : un nom court en minuscules, unique dans l'application (`api`, `worker`, `export`). Les pods le porteront en étiquette, et les politiques réseau le reprendront : choisis-le lisible pour l'équipe infra. S'il existe des manifestes, reprends le nom qu'ils emploient.
+- `nom` : un nom court en minuscules, unique dans l'application (`api`, `worker`, `export`). Les pods le porteront en étiquette, et les politiques réseau le reprendront : choisis-le lisible pour l'équipe DevOps. S'il existe des manifestes, reprends le nom qu'ils emploient.
 - les fonctions de l'intention qu'il réalise ;
 - l'exposition, celle que prévoit l'auteur : `externe` s'il est joignable depuis un réseau que l'entreprise ne maîtrise pas (Internet, réseau d'un partenaire), `interne` s'il ne l'est que depuis le réseau de l'entreprise, `aucune` si aucun utilisateur ne s'y connecte. Le palier Kubernetes la vérifiera dans les manifestes.
 

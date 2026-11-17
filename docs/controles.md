@@ -6,7 +6,7 @@ Les contrôles déterministes sont confiés à des outils : secrets, chaîne d'a
 
 Ce document décrit l'outillage commun : où le pipeline tourne, l'image, le réseau, la conversion des sorties d'outils en rapports. Il décrit aussi le premier contrôle outillé, celui des **secrets**. Les autres suivront un par un, chacun avec ses outils, ses règles et un cas du corpus.
 
-Il s'appuie sur les réponses de l'équipe infra du 2026-11-13 :
+Il s'appuie sur les réponses de l'équipe DevOps du 2026-11-13 :
 
 1. un runner GitLab dédié, dans Kubernetes ;
 2. GitLab Premium et JFrog Enterprise, mais pas d'outil de sécurité : Raton apporte les siens, Trivy au moins ;
@@ -17,7 +17,7 @@ Il s'appuie sur les réponses de l'équipe infra du 2026-11-13 :
 7. des secrets fournis par variables d'environnement, à défaut par fichiers ;
 8. l'auteur arrive avec son Dockerfile et son chart Helm ;
 9. des rapports d'outils jamais retouchés ;
-10. des rapports rangés dans le dépôt de l'équipe infra, à côté de la fiche.
+10. des rapports rangés dans le dépôt de l'équipe DevOps, à côté de la fiche.
 
 ## Ce que l'outillage doit garantir
 
@@ -26,14 +26,14 @@ Il s'appuie sur les réponses de l'équipe infra du 2026-11-13 :
 - **L'auteur ne règle pas les outils.** Raton passe sa propre configuration et neutralise les fichiers et les commentaires par lesquels le dépôt demanderait à un outil d'ignorer un résultat. Leur présence est elle-même un constat.
 - **Un échec ne passe jamais pour une absence de constat.** Chaque contrôle a un statut dans le manifeste : fait, en échec ou pas encore outillé.
 - **Aucun secret ne sort du job.** Rapports et sorties conservées masquent les valeurs.
-- **Les rapports restent bruts.** Ni un LLM ni un humain ne les retouche : ce sont des preuves. Écarter un faux positif est une décision de l'équipe infra, enregistrée à part. C'est le registre des décisions reporté avec le [format des constats](formats/constats.md#reporté).
+- **Les rapports restent bruts.** Ni un LLM ni un humain ne les retouche : ce sont des preuves. Écarter un faux positif est une décision de l'équipe DevOps, enregistrée à part. C'est le registre des décisions reporté avec le [format des constats](formats/constats.md#reporté).
 
 ## Vue d'ensemble
 
 ```mermaid
 flowchart LR
-  E(("Équipe<br/>infra"))
-  INFRA[("Dépôt de l'équipe infra<br/>fiche de qualification")]
+  E(("DevOps"))
+  INFRA[("Dépôt de l'équipe DevOps<br/>fiche de qualification")]
   APP[("Dépôt de l'application<br/>au commit SHA")]
   JF[("JFrog<br/>miroir")]
 
@@ -63,7 +63,7 @@ flowchart LR
 
 ## Où le pipeline tourne
 
-**Dans le dépôt de l'équipe infra, jamais dans celui de l'application.** Le pipeline d'un dépôt se définit dans ce dépôt : l'auteur pourrait modifier la revue de son propre code. Raton fournit un modèle, [`ci/raton.gitlab-ci.yml`](../ci/raton.gitlab-ci.yml), que le dépôt de l'équipe infra inclut, épinglé sur un commit de Raton. On le lance avec quatre variables : le code de l'application, le chemin de son dépôt dans GitLab, le commit soumis et le chemin de la fiche validée.
+**Dans le dépôt de l'équipe DevOps, jamais dans celui de l'application.** Le pipeline d'un dépôt se définit dans ce dépôt : l'auteur pourrait modifier la revue de son propre code. Raton fournit un modèle, [`ci/raton.gitlab-ci.yml`](../ci/raton.gitlab-ci.yml), que le dépôt de l'équipe DevOps inclut, épinglé sur un commit de Raton. On le lance avec quatre variables : le code de l'application, le chemin de son dépôt dans GitLab, le commit soumis et le chemin de la fiche validée.
 
 **Deux runners dédiés dans Kubernetes**, un par phase, chacun dans son namespace :
 
@@ -113,7 +113,7 @@ revue/<application>/<commit>/
 
 Le job échoue si un contrôle n'a pas pu tourner, ou si une preuve d'un rapport est réfutée : ce serait un défaut de Raton. Il n'échoue pas parce qu'il y a des constats : c'est la synthèse qui en tire un avis. Les artefacts sont conservés dans tous les cas.
 
-**Archivage.** L'équipe infra verse ce répertoire dans son dépôt, à côté de la fiche, par une demande de fusion. L'automatisation de cette étape est reportée : elle demande un jeton en écriture, à tenir hors du job d'analyse.
+**Archivage.** L'équipe DevOps verse ce répertoire dans son dépôt, à côté de la fiche, par une demande de fusion. L'automatisation de cette étape est reportée : elle demande un jeton en écriture, à tenir hors du job d'analyse.
 
 ### Registre, à venir
 
@@ -205,7 +205,7 @@ application: notes-de-frais
 commit: 4e3d3e49bc553b5ff0d6f7203f4791cf783997fb
 date: 2026-11-13T10:00:00Z
 fiche:
-  empreinte: sha256:681f93ad0b547839d9f90d7322b1855970753e9641dc14b0cc4c4197100633de
+  empreinte: sha256:a05898072d2032e4c15c0ff639ae86db57c7ef510cce27e10373e23760be93d7
   palier: 3
 image: jfrog.example.com/raton/outillage@sha256:2f9c4e1a7b3d5f8e0c6a9b2d4f7e1c3a5b8d0f2e4c6a8b1d3f5e7c9a2b4d6f8e
 historique: { complet: true, commits: 12 }
@@ -245,7 +245,7 @@ Un secret fait un constat, quel que soit le nombre d'endroits où il figure : au
 | Secret retiré du code, présent dans l'historique | `secret_expose` | haute | idem | `historique` : commit, fichier, lignes, extrait masqué |
 | Demande d'ignorer adressée à gitleaks | `injection_relecteurs` | basse | élevée | `code` |
 
-**Haute, jamais critique.** L'outil ne sait pas si le secret est celui de la production, ni s'il est encore valide : il ne l'essaie pas. L'équipe infra relève la sévérité si c'est le cas. Un secret de l'historique est compromis tant qu'il n'a pas été changé ; le retirer de l'historique ne suffit pas.
+**Haute, jamais critique.** L'outil ne sait pas si le secret est celui de la production, ni s'il est encore valide : il ne l'essaie pas. L'équipe DevOps relève la sévérité si c'est le cas. Un secret de l'historique est compromis tant qu'il n'a pas été changé ; le retirer de l'historique ne suffit pas.
 
 **Masquage.**
 
@@ -291,11 +291,11 @@ Le standard retenu : les secrets arrivent par des variables d'environnement, à 
 - `inventorier` dresse l'inventaire des bases préparées ;
 - `valider` contrôle un manifeste d'exécution.
 
-gitleaks n'a pas pu tourner dans la session de développement : on n'y exécute pas de code téléchargé. Les conversions sont testées sur des sorties construites selon le format JSON documenté de gitleaks, et l'orchestration avec un faux gitleaks qui note ce qu'il reçoit : arguments, environnement, répertoire, fichiers visibles. La première exécution réelle se fera dans le pipeline de l'équipe infra ; ses écarts avec ces sorties construites seront corrigés dans l'adaptateur.
+gitleaks n'a pas pu tourner dans la session de développement : on n'y exécute pas de code téléchargé. Les conversions sont testées sur des sorties construites selon le format JSON documenté de gitleaks, et l'orchestration avec un faux gitleaks qui note ce qu'il reçoit : arguments, environnement, répertoire, fichiers visibles. La première exécution réelle se fera dans le pipeline de l'équipe DevOps ; ses écarts avec ces sorties construites seront corrigés dans l'adaptateur.
 
 ## Décisions à valider
 
-1. **Le pipeline vit dans le dépôt de l'équipe infra**, avec deux runners dédiés : la préparation n'accède qu'à JFrog et ne voit aucun dépôt ; l'analyse n'accède qu'à GitLab.
+1. **Le pipeline vit dans le dépôt de l'équipe DevOps**, avec deux runners dédiés : la préparation n'accède qu'à JFrog et ne voit aucun dépôt ; l'analyse n'accède qu'à GitLab.
 2. **Une phase registre**, au réseau limité à JFrog, ne recevra que la liste des paquets et des images extraite par l'analyse. Seul son principe est à valider maintenant ; elle sera construite avec la chaîne d'approvisionnement.
 3. **L'image** : un outil n'y entre qu'avec son adaptateur, ses tests et un cas du corpus. Délai de carence de 14 jours, sommes vérifiées, mesure sur le corpus avant toute mise à jour.
 4. **Les demandes d'ignorer de l'auteur** sont neutralisées et deviennent des constats `injection_relecteurs` de sévérité basse.
@@ -304,11 +304,11 @@ gitleaks n'a pas pu tourner dans la session de développement : on n'y exécute 
 7. **Le manifeste d'exécution** donne un statut à chaque contrôle (fait, en échec, pas encore outillé). Le job échoue sur un échec ou une preuve réfutée, jamais sur des constats.
 8. **gitleaks tourne sans `--redact`** pour que Raton masque lui-même. Les sorties conservées sont masquées et ne gardent pas l'identité des auteurs de commits.
 9. **Les secrets arrivent par variables d'environnement**, à défaut par fichiers. Une valeur par défaut dans le code est un écart. Un flux vers le coffre reste déclarable dans la matrice, mais signalé comme écart au standard du SI.
-10. **Les contrôles 5 à 8 sont des jobs du pipeline, pas des skills.** Ils ne demandent ni entretien ni jugement : un script suffit. Claude intervient avant, pour constituer le dossier, et après, pour la revue par agents et la synthèse. Un skill pourra plus tard aider l'équipe infra à lire les résultats, ou l'auteur à lancer le pré-contrôle.
+10. **Les contrôles 5 à 8 sont des jobs du pipeline, pas des skills.** Ils ne demandent ni entretien ni jugement : un script suffit. Claude intervient avant, pour constituer le dossier, et après, pour la revue par agents et la synthèse. Un skill pourra plus tard aider l'équipe DevOps à lire les résultats, ou l'auteur à lancer le pré-contrôle.
 
 ## Reporté
 
 - **Cas du corpus pour les secrets**, à construire une fois l'outillage validé. Il doit avoir un vrai historique git : un jeton commité puis retiré, un mot de passe en valeur par défaut, une demande d'ignorer. Le dépôt du cas sera reconstruit à l'identique par un script, avec des dates et des auteurs fixés, pour que ses commits aient toujours le même SHA.
-- **Archivage automatique** des rapports dans le dépôt de l'équipe infra, et lancement du pipeline depuis la demande de fusion qui soumet l'application.
+- **Archivage automatique** des rapports dans le dépôt de l'équipe DevOps, et lancement du pipeline depuis la demande de fusion qui soumet l'application.
 - **Analyse de l'image construite** : la construire, c'est exécuter son Dockerfile ; elle relève du bac à sable de l'analyse dynamique.
 - **Analyseur de secrets de Trivy** en second avis de gitleaks : à décider sur une mesure du corpus, pour ne pas doubler le bruit.

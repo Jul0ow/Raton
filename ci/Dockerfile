@@ -2,7 +2,7 @@
 #
 # Image d'outillage de Raton : outils de contrôle aux versions épinglées, scripts et règles.
 #
-# Construite par l'équipe infra et poussée dans JFrog ; le pipeline l'utilise par digest
+# Construite par l'équipe DevOps et poussée dans JFrog ; le pipeline l'utilise par digest
 # (variable RATON_IMAGE). Contexte de construction : la racine du dépôt Raton.
 #
 #   docker build -f ci/Dockerfile \
@@ -51,7 +51,7 @@ FROM ${IMAGE_PYTHON}
 ARG PIP_INDEX_URL=https://pypi.org/simple
 
 # git : clone du dépôt relu et lecture de son historique. Rien d'autre du système.
-# apt passe par le miroir Debian de JFrog si l'équipe infra le configure ici.
+# apt passe par le miroir Debian de JFrog si l'équipe DevOps le configure ici.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends git ca-certificates \
  && rm -rf /var/lib/apt/lists/*

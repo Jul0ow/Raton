@@ -1,8 +1,8 @@
 # Extrait du config.toml des deux runners de Raton (exécuteur Kubernetes).
 #
-# Dans GitLab, chaque runner est enregistré pour le seul projet de revue de l'équipe infra
+# Dans GitLab, chaque runner est enregistré pour le seul projet de revue de l'équipe DevOps
 # (verrouillé sur ce projet) et ne prend que les jobs des branches protégées.
-# L'URL de GitLab et les jetons d'enregistrement sont ceux des autres runners de l'équipe infra.
+# L'URL de GitLab et les jetons d'enregistrement sont ceux des autres runners de l'équipe DevOps.
 
 [[runners]]
   name = "raton-preparation"

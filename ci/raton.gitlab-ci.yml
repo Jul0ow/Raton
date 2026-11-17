@@ -1,6 +1,6 @@
 # Pipeline de revue Raton : contrôles déterministes.
 #
-# À inclure dans le dépôt de l'équipe infra, jamais dans celui de l'application : l'auteur
+# À inclure dans le dépôt de l'équipe DevOps, jamais dans celui de l'application : l'auteur
 # ne doit pas pouvoir modifier la revue de son propre code.
 #
 #   include:

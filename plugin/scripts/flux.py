@@ -7,13 +7,13 @@
 
   flux.py valider FLUX [--dossier REP] [--qualification FICHE]   schéma, règles et références
   flux.py ecarts FLUX [--dossier REP] [--qualification FICHE]    flux non déclarés, échanges sans flux…
-  flux.py rendre FLUX [--dossier REP]                            rendu Markdown, pour l'auteur et l'équipe infra
+  flux.py rendre FLUX [--dossier REP]                            rendu Markdown, pour l'auteur et l'équipe DevOps
   flux.py egress FLUX                                            destinations hors du namespace, pour un proxy ou un pare-feu
   flux.py generer FLUX --dossier REP --plateforme PLATEFORME     politiques réseau à appliquer au déploiement
                      [--namespace NS]
 
 REP est le répertoire .raton (intention.yaml, technique.yaml). La plateforme est l'ensemble
-des services communs que l'équipe infra fournit à toutes les applications : entrées des
+des services communs que l'équipe DevOps fournit à toutes les applications : entrées des
 utilisateurs, SSO, secrets, journalisation, supervision, DNS. La matrice vient de l'auteur :
 c'est une donnée non fiable, que le script ne fait qu'analyser. Les politiques générées
 refusent tout par défaut : un flux absent de la matrice est bloqué.
@@ -668,7 +668,7 @@ def main(argv=None):
     p = sous.add_parser("generer", help="politiques réseau Kubernetes")
     p.add_argument("flux")
     p.add_argument("--dossier", required=True, help="répertoire .raton : technique.yaml donne le nom des composants")
-    p.add_argument("--plateforme", required=True, help="fichier de plateforme de l'équipe infra")
+    p.add_argument("--plateforme", required=True, help="fichier de plateforme de l'équipe DevOps")
     p.add_argument("--namespace", help="namespace de l'application ; par défaut, son code")
     p.set_defaults(func=_cmd_generer)
     args = parser.parse_args(argv)

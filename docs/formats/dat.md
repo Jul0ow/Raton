@@ -226,17 +226,17 @@ Le cycle de vie montre l'autre intérêt d'une description exacte : l'intention 
 
 ### Ressources et capacités
 
-L'équipe infra dimensionne le namespace, les bases et les stockages de l'application avant de la déployer. La partie technique lui dit ce qu'il faut :
+L'équipe DevOps dimensionne le namespace, les bases et les stockages de l'application avant de la déployer. La partie technique lui dit ce qu'il faut :
 
 - **par composant**, `ressources` : nombre d'`instances` en fonctionnement normal (pour une tâche planifiée, les pods lancés à chaque exécution) ; `cpu` et `memoire` d'une instance en fonctionnement normal ; `cpu_max` et `memoire_max`, son plafond. Sans plafond déclaré, le plafond vaut la demande ;
 - **par stockage**, `capacite` : volume `initiale`, à la mise en production, marge comprise, et croissance estimée `par_an` (`0Gi` pour un cache). Avec la durée de conservation du cycle de vie, elle dit jusqu'où le stockage grossira ;
 - **par stockage déployé dans le namespace** (il a un `nom`, comme une base PostgreSQL lancée avec l'application), aussi des `ressources`, puisque ses pods en consomment. Un stockage géré hors du cluster n'en a pas.
 
-Les quantités s'écrivent en unités Kubernetes : `250m` ou `0.5` pour le processeur, `512Mi`, `2Gi`, `1Ti` pour la mémoire et le stockage. Ce sont les valeurs que l'équipe infra reportera dans les manifestes, sans conversion. Les suffixes décimaux (`M`, `G`) sont refusés : en Kubernetes, `512m` vaut 0,512 octet, une erreur facile à commettre et difficile à voir.
+Les quantités s'écrivent en unités Kubernetes : `250m` ou `0.5` pour le processeur, `512Mi`, `2Gi`, `1Ti` pour la mémoire et le stockage. Ce sont les valeurs que l'équipe DevOps reportera dans les manifestes, sans conversion. Les suffixes décimaux (`M`, `G`) sont refusés : en Kubernetes, `512m` vaut 0,512 octet, une erreur facile à commettre et difficile à voir.
 
 Ce sont des ordres de grandeur estimés par l'auteur, pas des mesures. Ils servent trois fois :
 
-- l'équipe infra dimensionne et réserve ;
+- l'équipe DevOps dimensionne et réserve ;
 - le palier Kubernetes (skill 5) vérifie que les `requests` et `limits` des manifestes reprennent ces valeurs : `requests` pour la demande, `limits` pour le plafond ;
 - l'analyse dynamique (skill 10), en bac à sable, pourra comparer la consommation observée aux valeurs déclarées.
 
@@ -318,7 +318,7 @@ Complété le 2026-11-12 : chaque échange peut citer les interconnexions de la 
 Complété le 2026-11-13, à la relecture de la matrice de flux :
 
 - l'exposition d'un composant vaut `externe`, et non plus `internet`, avec le sens qu'elle a dans la qualification : joignable depuis un réseau que l'entreprise ne maîtrise pas, Internet ou réseau d'un partenaire ;
-- chaque composant, et chaque stockage déployé avec l'application, a un `nom` court et lisible (`api`, `worker`, `postgres`), unique dans l'application. Ses pods le portent en étiquette et les politiques réseau le reprennent : l'équipe infra lit `api` dans le cluster plutôt que `C01`.
+- chaque composant, et chaque stockage déployé avec l'application, a un `nom` court et lisible (`api`, `worker`, `postgres`), unique dans l'application. Ses pods le portent en étiquette et les politiques réseau le reprennent : l'équipe DevOps lit `api` dans le cluster plutôt que `C01`.
 
 Proposé le 2026-11-17, à la demande de l'équipe, à valider :
 
@@ -330,7 +330,7 @@ Proposé le 2026-11-17, à la demande de l'équipe, à valider :
 Questions pour la validation :
 
 - faut-il déclarer aussi la conservation chez les services tiers (un fournisseur d'IA qui garde les justificatifs 30 jours, par exemple) ? Elle dépend du contrat plus que du code ; elle pourrait entrer dans `services_tiers` ;
-- l'équipe infra veut-elle un nombre d'instances minimal selon la disponibilité de la fiche de qualification, par exemple deux instances dès le niveau 3 ? Le palier Kubernetes pourrait le vérifier.
+- l'équipe DevOps veut-elle un nombre d'instances minimal selon la disponibilité de la fiche de qualification, par exemple deux instances dès le niveau 3 ? Le palier Kubernetes pourrait le vérifier.
 
 Écarté pour l'instant : exiger un second valideur de l'intention quand l'auteur du code et le porteur métier sont la même personne.
 

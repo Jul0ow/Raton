@@ -1,6 +1,6 @@
 # Format de la note de l'application
 
-Statut : **proposé** le 2026-11-17, à la demande de l'équipe, à valider.
+Statut : **validé** le 2026-11-17 (format v0), à la demande de l'équipe : voir les [décisions](#décisions).
 
 À la fin de la revue, l'application reçoit une **note** : un total sur 100 et une lettre de A à E. Elle dit au porteur métier ce qu'il lui reste à améliorer et ce que chaque correction lui rapporte, pour lui donner envie de la faire monter d'une version à l'autre.
 
@@ -8,7 +8,7 @@ Le schéma fait foi : [`note.schema.json`](../../plugin/schemas/note.schema.json
 
 ## Ce que la note doit permettre
 
-- **Motiver sans négocier.** Comme le palier, la note se calcule par une règle publique et déterministe. Personne ne la choisit : ni le métier, ni une IA, ni l'équipe infra. Une note discutée au cas par cas ne motiverait personne.
+- **Motiver sans négocier.** Comme le palier, la note se calcule par une règle publique et déterministe. Personne ne la choisit : ni le métier, ni une IA, ni l'équipe DevOps. Une note discutée au cas par cas ne motiverait personne.
 - **Dire comment monter.** Chaque constat a un coût connu d'avance, et la note liste les corrections qui font gagner une lettre. Le métier sait par où commencer.
 - **Récompenser l'honnêteté.** Déclarer coûte moins cher que cacher. Un service tiers déclaré dans l'intention, la fiche et la matrice de flux ne coûte rien à la note : son risque est traité par la qualification et par l'avis. Le même service, trouvé par la revue, coûte un constat haut, qui plafonne la note à C.
 - **Ne pas décider à la place de l'avis.** Une bonne note n'autorise rien. La mise en production dépend de l'avis, signé par le change manager.
@@ -18,9 +18,10 @@ Le schéma fait foi : [`note.schema.json`](../../plugin/schemas/note.schema.json
 
 La note se calcule à la synthèse (skill 12), à chaque revue, revue différentielle comprise : chaque commit soumis reçoit sa note, à côté de son avis.
 
-- L'équipe infra la calcule après avoir tranché les divergences entre passes et entre relecteurs, et la transmet au métier avec les constats à corriger.
-- Elle est rangée avec l'avis dans le dépôt de l'équipe infra. Le change manager et le RSSI y ont accès, comme au reste du dossier.
-- Les constats que l'équipe infra écarte (faux positifs) ne comptent pas. Tant que le registre des décisions n'existe pas (voir le [format des constats](constats.md#reporté)), le script compte tous les constats des rapports qu'on lui donne : l'équipe infra ne lui passe que les rapports retenus.
+- L'équipe DevOps la calcule après avoir tranché les divergences entre passes et entre relecteurs, et la transmet au métier avec les constats à corriger.
+- Elle est rangée avec l'avis dans le dépôt de l'équipe DevOps. Le change manager et le RSSI y ont accès, comme au reste du dossier.
+- Un refus du change manager ne change pas la note, qui se calcule sur les rapports. Le métier reçoit les motifs du refus avec les constats à corriger ; la version corrigée repasse la revue différentielle, qui vérifie que chaque motif est traité, et reçoit une nouvelle note. Un motif resté sans réponse devient un constat de cette revue, et compte.
+- Les constats que l'équipe DevOps écarte (faux positifs) ne comptent pas. Tant que le registre des décisions n'existe pas (voir le [format des constats](constats.md#reporté)), le script compte tous les constats des rapports qu'on lui donne : l'équipe DevOps ne lui passe que les rapports retenus.
 
 ## Calcul
 
@@ -71,7 +72,7 @@ Les plafonds empêchent un bon total de masquer un défaut grave. Une applicatio
 
 ### Note provisoire
 
-La fiche de qualification dit quels contrôles sont obligatoires. Tant que l'un d'eux n'a pas de rapport, la note est **provisoire** et le rendu les nomme : ce qu'ils trouveront peut la faire baisser. La note ne les compte pas comme des échecs, car le métier n'y peut rien : c'est l'équipe infra qui lance les contrôles.
+La fiche de qualification dit quels contrôles sont obligatoires. Tant que l'un d'eux n'a pas de rapport, la note est **provisoire** et le rendu les nomme : ce qu'ils trouveront peut la faire baisser. La note ne les compte pas comme des échecs, car le métier n'y peut rien : c'est l'équipe DevOps qui lance les contrôles.
 
 ### Points à gagner
 
@@ -131,7 +132,7 @@ Si tous les contrôles avaient tourné et trouvé tout le [corrigé du cas](../.
 
 ## Ce que la note n'est pas
 
-- **Pas l'avis.** L'avis tient compte de ce que la note ignore : le contexte, les réserves, les contrôles qui n'ont pas tourné. Il peut refuser une application bien notée, et en accepter une moins bien notée avec des réserves.
+- **Pas l'avis.** L'avis tient compte de ce que la note ignore : le contexte, les réserves, les contrôles qui n'ont pas tourné. Le change manager peut refuser une application bien notée, et en accepter une moins bien notée avec des réserves.
 - **Pas une mesure du risque de l'application.** Une application qui écrit dans la paie a plus d'enjeux qu'une autre ; cela relève de la qualification, qui fixe le palier. La note mesure ce qu'il reste à corriger, à palier donné.
 - **Pas un classement entre applications.** Deux applications de paliers différents ne passent pas les mêmes contrôles : celle du palier 3 a plus de chances de recevoir des constats. La note compare une application à elle-même, d'une version à l'autre ; le rendu affiche le palier à côté de la note pour le rappeler.
 
@@ -139,9 +140,9 @@ Si tous les contrôles avaient tourné et trouvé tout le [corrigé du cas](../.
 
 Une note que l'on veut faire monter, on peut aussi chercher à la tromper. Les parades :
 
-- **Le métier ne retire pas un constat.** Il corrige, ou l'équipe infra écarte le constat comme faux positif. Contester ne rapporte rien.
+- **Le métier ne retire pas un constat.** Il corrige, ou l'équipe DevOps écarte le constat comme faux positif. Contester ne rapporte rien.
 - **Cacher coûte plus cher que déclarer.** Un flux omis du dossier et trouvé par la revue coûte un constat haut et un dossier inexact ; déclaré, il ne coûte rien. Et la matrice de flux le bloque en production de toute façon.
-- **Sous-qualifier pour subir moins de contrôles** ne marche pas mieux qu'avant : la fiche est validée par l'équipe infra, et le palier s'affiche à côté de la note.
+- **Sous-qualifier pour subir moins de contrôles** ne marche pas mieux qu'avant : la fiche est validée par l'équipe DevOps, et le palier s'affiche à côté de la note.
 
 ## Reporté
 
@@ -149,13 +150,15 @@ Une note que l'on veut faire monter, on peut aussi chercher à la tromper. Les p
 - **Écarts du dossier.** Les écarts de `dossier.py ecarts` et de `flux.py ecarts` entreront dans la note quand les contrôles `dat` et `matrice_flux` produiront des rapports.
 - **Constats écartés.** Avec le registre des décisions.
 
-## Questions pour la validation
+## Décisions
 
-1. Une lettre de A à E en plus du total sur 100, ou le total seulement ?
-2. Les cinq axes, de poids égaux, et les coûts par sévérité (20, 10, 5, 2, 0).
+Validées le 2026-11-17 :
+
+1. Une lettre de A à E, en plus du total sur 100.
+2. Cinq axes de poids égaux, et des coûts par sévérité de 20, 10, 5, 2 et 0 points.
 3. Les plafonds : C au mieux avec un constat haut, E avec un constat critique.
-4. Les soupçons (confiance faible) non comptés tant qu'un humain ne les a pas confirmés.
-5. Qui voit la note au-delà du métier, de l'équipe infra, du change manager et du RSSI ? Un tableau de bord de toutes les applications inciterait à les comparer entre paliers, ce que la note ne permet pas.
+4. Les soupçons (confiance faible) ne comptent pas tant qu'un humain ne les a pas confirmés.
+5. La note est vue par le métier, l'équipe DevOps, le change manager et le RSSI. Un catalogue des applications, qui les décrirait et afficherait leur note, serait utile, mais c'est un projet à part (voir la [feuille de route](../feuille-de-route.md#hors-du-périmètre)). Le document `raton/note/v0` est prévu pour l'alimenter ; le catalogue devra afficher le palier à côté de la note, pour ne pas comparer des applications qui ne passent pas les mêmes contrôles.
 
 ## Outillage
 

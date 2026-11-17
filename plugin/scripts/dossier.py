@@ -348,7 +348,7 @@ _FIN = {
 
 
 def rendre_technique(doc, intention=None):
-    """Rendu lisible de la partie technique, pour l'équipe infra, le change manager et le
+    """Rendu lisible de la partie technique, pour l'équipe DevOps, le change manager et le
     RSSI. Les libellés de l'intention, si elle est fournie, nomment les références."""
     lib = {}
     if intention:
