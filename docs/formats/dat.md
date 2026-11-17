@@ -1,6 +1,6 @@
 # Format du DAT
 
-Statut : **validé** le 2026-11-08 (format v0). Complété le 2026-11-12 : les échanges renvoient aux interconnexions de la qualification. Complété le 2026-11-13, avec la matrice de flux : exposition `externe` des composants, nom des composants dans le cluster. Complément **proposé** le 2026-11-17, à la demande de l'équipe, à valider : [ressources et capacités](#ressources-et-capacités) requises, [cycle de vie des données](#cycle-de-vie-des-données).
+Statut : **validé** le 2026-11-08 (format v0). Complété le 2026-11-12 : les échanges renvoient aux interconnexions de la qualification. Complété le 2026-11-13, avec la matrice de flux : exposition `externe` des composants, nom des composants dans le cluster. Complété le 2026-11-17, à la demande de l'équipe : [ressources et capacités](#ressources-et-capacités) requises, **validées** ; [cycle de vie des données](#cycle-de-vie-des-données), **proposé**, à valider.
 
 Le DAT (dossier d'architecture technique) décrit une application soumise à la revue. Il a deux rôles :
 
@@ -320,19 +320,19 @@ Complété le 2026-11-13, à la relecture de la matrice de flux :
 - l'exposition d'un composant vaut `externe`, et non plus `internet`, avec le sens qu'elle a dans la qualification : joignable depuis un réseau que l'entreprise ne maîtrise pas, Internet ou réseau d'un partenaire ;
 - chaque composant, et chaque stockage déployé avec l'application, a un `nom` court et lisible (`api`, `worker`, `postgres`), unique dans l'application. Ses pods le portent en étiquette et les politiques réseau le reprennent : l'équipe DevOps lit `api` dans le cluster plutôt que `C01`.
 
-Proposé le 2026-11-17, à la demande de l'équipe, à valider :
+Complété le 2026-11-17, à la demande de l'équipe, et validé le même jour :
 
 - la partie technique documente les ressources requises : processeur et mémoire par composant (instances, demande, plafond), en unités Kubernetes, et volume par stockage (initial et par an) ;
-- elle décrit le cycle de vie de chaque donnée conservée : durée appliquée, fin, mécanisme ;
 - ces déclarations sont facultatives pour le schéma, pour le relecteur aveugle, et exigées par `dossier.py` dans le dossier de l'auteur ;
 - le palier Kubernetes vérifiera que les `requests` et `limits` des manifestes reprennent les ressources déclarées.
 
-Questions pour la validation :
+Proposé le 2026-11-17, à valider : la partie technique décrit le cycle de vie de chaque donnée conservée (durée appliquée, fin, mécanisme), déclaration de l'auteur exigée de la même façon.
 
-- faut-il déclarer aussi la conservation chez les services tiers (un fournisseur d'IA qui garde les justificatifs 30 jours, par exemple) ? Elle dépend du contrat plus que du code ; elle pourrait entrer dans `services_tiers` ;
-- l'équipe DevOps veut-elle un nombre d'instances minimal selon la disponibilité de la fiche de qualification, par exemple deux instances dès le niveau 3 ? Le palier Kubernetes pourrait le vérifier.
+Écarté :
 
-Écarté pour l'instant : exiger un second valideur de l'intention quand l'auteur du code et le porteur métier sont la même personne.
+- pour l'instant, exiger un second valideur de l'intention quand l'auteur du code et le porteur métier sont la même personne ;
+- le 2026-11-17, déclarer combien de temps les services tiers conservent les données qu'ils reçoivent : le cycle de vie ne décrit que ce que l'application conserve elle-même ;
+- le 2026-11-17, imposer un nombre minimal d'instances selon la disponibilité de la fiche de qualification.
 
 ## Outillage
 
