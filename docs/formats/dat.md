@@ -1,6 +1,6 @@
 # Format du DAT
 
-Statut : **validé** le 2026-11-08 (format v0). Complété le 2026-11-12 : les échanges renvoient aux interconnexions de la qualification. Complété le 2026-11-13, avec la matrice de flux : exposition `externe` des composants, nom des composants dans le cluster. Complété le 2026-11-17, à la demande de l'équipe : [ressources et capacités](#ressources-et-capacités) requises, **validées** ; [cycle de vie des données](#cycle-de-vie-des-données), **proposé**, à valider.
+Statut : **validé** le 2026-11-08 (format v0). Complété le 2026-11-12 : les échanges renvoient aux interconnexions de la qualification. Complété le 2026-11-13, avec la matrice de flux : exposition `externe` des composants, nom des composants dans le cluster. Complété et validé le 2026-11-17, à la demande de l'équipe : [ressources et capacités](#ressources-et-capacités) requises, [cycle de vie des données](#cycle-de-vie-des-données).
 
 Le DAT (dossier d'architecture technique) décrit une application soumise à la revue. Il a deux rôles :
 
@@ -323,10 +323,9 @@ Complété le 2026-11-13, à la relecture de la matrice de flux :
 Complété le 2026-11-17, à la demande de l'équipe, et validé le même jour :
 
 - la partie technique documente les ressources requises : processeur et mémoire par composant (instances, demande, plafond), en unités Kubernetes, et volume par stockage (initial et par an) ;
+- elle décrit le cycle de vie de chaque donnée conservée : durée appliquée, fin, mécanisme ;
 - ces déclarations sont facultatives pour le schéma, pour le relecteur aveugle, et exigées par `dossier.py` dans le dossier de l'auteur ;
 - le palier Kubernetes vérifiera que les `requests` et `limits` des manifestes reprennent les ressources déclarées.
-
-Proposé le 2026-11-17, à valider : la partie technique décrit le cycle de vie de chaque donnée conservée (durée appliquée, fin, mécanisme), déclaration de l'auteur exigée de la même façon.
 
 Écarté :
 

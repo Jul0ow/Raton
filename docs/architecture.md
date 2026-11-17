@@ -311,8 +311,7 @@ Composants transverses :
 | Script `flux.py` : validation, écarts, génération des politiques réseau | en place |
 | Image d'outillage et pipeline GitLab : deux runners dédiés, préparation puis analyse (gitleaks, Trivy ; osv-scanner, Opengrep à venir) | proposé |
 | Script `controles.py` et format du manifeste d'exécution | proposé |
-| Ressources et capacités dans la partie technique du DAT | en place |
-| Cycle de vie des données dans la partie technique du DAT | proposé |
+| Ressources, capacités et cycle de vie des données dans la partie technique du DAT | en place |
 | Notation de l'application : règle publique, script `note.py` | en place |
 | Corpus de test | un cas : `notes-de-frais` |
 
