@@ -7,11 +7,18 @@ source:
   frameworks: [fastapi, sqlalchemy]
 
 composants:
-  - { id: C01, nom: api, libelle: API notes de frais, role: api, technologie: python / fastapi, expose: interne, fonctions: [F01, F02, F03, F04] }
+  - id: C01
+    nom: api
+    libelle: API notes de frais
+    role: api
+    technologie: python / fastapi
+    expose: interne
+    fonctions: [F01, F02, F03, F04]
+    ressources: { instances: 2, cpu: 250m, cpu_max: "1", memoire: 256Mi, memoire_max: 512Mi }
 
 stockages:
-  - { id: S01, type: base_relationnelle, technologie: postgresql, donnees: [D01] }
-  - { id: S02, type: stockage_objet, technologie: s3, donnees: [D02] }
+  - { id: S01, type: base_relationnelle, technologie: postgresql, donnees: [D01], capacite: { initiale: 1Gi, par_an: 100Mi } }
+  - { id: S02, type: stockage_objet, technologie: s3, donnees: [D02], capacite: { initiale: 1Gi, par_an: 25Gi } }
 
 services_tiers:
   - { id: T01, libelle: Annuaire de l'entreprise, usage: liste des salariés d'un manager, echanges: [E01] }
@@ -25,6 +32,10 @@ authentification:
     - { role: employee, profils: [P01] }
     - { role: manager, profils: [P02] }
     - { role: accounting, profils: [P03] }
+
+cycle_de_vie:
+  - { donnee: D01, fin: aucune, precision: rien dans le code ne supprime les notes de la base }
+  - { donnee: D02, fin: aucune, precision: rien dans le code ne supprime les justificatifs du stockage objet }
 
 configuration:
   variables: [OIDC_ISSUER, OIDC_AUDIENCE, AI_ENDPOINT, DIRECTORY_URL, COMPTA_URL, S3_ENDPOINT, S3_BUCKET]

@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:raton:schema:note:v0",
+  "title": "Note de l'application",
+  "description": "Note calculée par note.py à la fin de la revue, à partir de la fiche de qualification et des rapports de contrôle d'un commit. Elle ne décide pas de la mise en production : c'est l'avis signé.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "application", "commit", "palier", "total", "lettre", "plafond", "provisoire", "controles_manquants", "axes", "constats", "non_comptes", "prochaine_lettre"],
+  "properties": {
+    "format": { "const": "raton/note/v0" },
+    "application": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+    "commit": { "$ref": "urn:raton:schema:constat:v0#/$defs/sha" },
+    "palier": { "type": "integer", "minimum": 1, "maximum": 3 },
+    "total": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "lettre": { "$ref": "#/$defs/lettre" },
+    "plafond": {
+      "description": "Plafond imposé par le constat compté le plus grave, s'il y en a un.",
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["lettre", "severite"],
+          "properties": {
+            "lettre": { "$ref": "#/$defs/lettre" },
+            "severite": { "enum": ["critique", "haute"] }
+          }
+        }
+      ]
+    },
+    "provisoire": { "type": "boolean", "description": "Vrai si un contrôle obligatoire de la fiche n'a pas de rapport." },
+    "controles_manquants": { "type": "array", "items": { "$ref": "urn:raton:schema:constat:v0#/$defs/controle" } },
+    "axes": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["axe", "points", "constats"],
+        "properties": {
+          "axe": { "enum": ["dossier", "intention", "code", "dependances", "production"] },
+          "points": { "type": "integer", "minimum": 0, "maximum": 20 },
+          "constats": { "type": "array", "items": { "$ref": "#/$defs/ref" } }
+        }
+      }
+    },
+    "constats": {
+      "description": "Constats comptés, un par problème : ceux qui désignent le même problème dans plusieurs rapports sont regroupés.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ref", "aussi", "categorie", "severite", "confiance", "titre", "axe", "cout"],
+        "properties": {
+          "ref": { "$ref": "#/$defs/ref" },
+          "aussi": { "type": "array", "items": { "$ref": "#/$defs/ref" } },
+          "categorie": { "$ref": "urn:raton:schema:constat:v0#/$defs/categorie" },
+          "severite": { "enum": ["critique", "haute", "moyenne", "basse"] },
+          "confiance": { "enum": ["elevee", "moyenne"] },
+          "titre": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "axe": { "enum": ["dossier", "intention", "code", "dependances", "production"] },
+          "cout": { "type": "integer", "minimum": 1, "maximum": 20 }
+        }
+      }
+    },
+    "non_comptes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ref", "aussi", "categorie", "severite", "confiance", "titre", "motif"],
+        "properties": {
+          "ref": { "$ref": "#/$defs/ref" },
+          "aussi": { "type": "array", "items": { "$ref": "#/$defs/ref" } },
+          "categorie": { "$ref": "urn:raton:schema:constat:v0#/$defs/categorie" },
+          "severite": { "enum": ["critique", "haute", "moyenne", "basse", "info"] },
+          "confiance": { "enum": ["elevee", "moyenne", "faible"] },
+          "titre": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "motif": { "type": "string", "minLength": 1, "maxLength": 200 }
+        }
+      }
+    },
+    "prochaine_lettre": {
+      "description": "Les constats à corriger, les plus graves d'abord, pour gagner au moins une lettre.",
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["lettre", "total", "corriger"],
+          "properties": {
+            "lettre": { "$ref": "#/$defs/lettre" },
+            "total": { "type": "integer", "minimum": 0, "maximum": 100 },
+            "corriger": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/ref" } }
+          }
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "lettre": { "enum": ["A", "B", "C", "D", "E"] },
+    "ref": {
+      "type": "string",
+      "pattern": "^[a-z_]+(#[0-9]+)?(~[0-9]+)?:[A-Za-z0-9][A-Za-z0-9_.-]{0,39}$",
+      "description": "Contrôle, numéro de passe éventuel, identifiant du constat dans son rapport : revue_informee#2:R01."
+    }
+  }
+}

@@ -41,6 +41,7 @@ Le script `dossier.py` est déterministe, il ne fait que lire le dossier :
 python3 "${CLAUDE_SKILL_DIR}/../../scripts/dossier.py" valider .raton/intention.yaml   # un fichier
 python3 "${CLAUDE_SKILL_DIR}/../../scripts/dossier.py" valider .raton                  # le dossier, références croisées comprises
 python3 "${CLAUDE_SKILL_DIR}/../../scripts/dossier.py" rendre .raton/intention.yaml    # rendu lisible pour le métier
+python3 "${CLAUDE_SKILL_DIR}/../../scripts/dossier.py" rendre .raton/technique.yaml    # ressources totales, cycle de vie des données
 python3 "${CLAUDE_SKILL_DIR}/../../scripts/dossier.py" ecarts .raton                   # écarts intention / technique
 python3 "${CLAUDE_SKILL_DIR}/../../scripts/qualification.py" valider FICHE --intention .raton/intention.yaml   # recoupements avec la fiche
 ```
@@ -63,9 +64,10 @@ Ton interlocuteur est le porteur métier. Il ne lit pas de YAML et n'a pas à co
 Elle suppose une intention validée. Sinon, arrête-toi et propose la phase intention. Lis d'abord `references/technique.md` : il dit où chercher chaque information dans le code.
 
 1. Relève le commit avec `git rev-parse HEAD` et l'état du dépôt avec `git status --porcelain`. S'il y a des modifications non commitées, préviens : le DAT décrit un commit, et ces modifications n'en font pas partie.
-2. Lis le code en lecture seule et remplis `.raton/technique.yaml`, en renvoyant aux identifiants de l'intention. Décris le code tel qu'il est, pas tel que l'intention le voudrait : un service appelé par le code figure dans le DAT même si l'intention l'ignore.
-3. Lance `valider .raton`, puis `ecarts .raton`.
-4. Présente à l'utilisateur chaque écart du script, puis ce que tu as remarqué et que le script ne peut pas voir : une exclusion qui semble violée, une donnée stockée que l'intention dit non stockée, une fonction du code qui ne correspond à aucune fonction de l'intention. Pour chacun, indique le fichier et la ligne. L'utilisateur décide de la suite ; tu ne fais jamais disparaître un écart en ajustant la partie technique.
+2. Lis le code en lecture seule et remplis `.raton/technique.yaml`, en renvoyant aux identifiants de l'intention. Décris le code tel qu'il est, pas tel que l'intention le voudrait : un service appelé par le code figure dans le DAT même si l'intention l'ignore, et une donnée que rien ne supprime a `fin: aucune` même si l'intention prévoit une durée.
+3. Demande à l'utilisateur les ressources des composants et la capacité des stockages, que le code ne dit pas, en l'aidant à les estimer (voir `references/technique.md`).
+4. Lance `valider .raton`, puis `ecarts .raton`, puis `rendre .raton/technique.yaml`, et montre à l'utilisateur les ressources à prévoir et le tableau du cycle de vie.
+5. Présente à l'utilisateur chaque écart du script, puis ce que tu as remarqué et que le script ne peut pas voir : une exclusion qui semble violée, une donnée stockée que l'intention dit non stockée, une conservation prévue par l'intention que rien ne fait respecter dans le code, une fonction du code qui ne correspond à aucune fonction de l'intention. Pour chacun, indique le fichier et la ligne. L'utilisateur décide de la suite ; tu ne fais jamais disparaître un écart en ajustant la partie technique.
 
 ## Limites
 

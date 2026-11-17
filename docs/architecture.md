@@ -34,7 +34,7 @@ flowchart LR
   class CAS,ATT,CMP,MES corpus
 ```
 
-**Boucle de production** (en haut) : une application réelle passe dans le pipeline, les rapports sont synthétisés en un avis que le RSSI signe. Il n'y a pas de corrigé : personne ne sait d'avance ce que contient l'application.
+**Boucle de production** (en haut) : une application réelle passe dans le pipeline, les rapports sont synthétisés en un avis que le change manager signe pour autoriser la mise en production, et en une note qui dit au métier ce qu'il peut améliorer. Il n'y a pas de corrigé : personne ne sait d'avance ce que contient l'application.
 
 **Boucle de mesure** (en bas, en orange) : c'est le contrôle qualité de Raton lui-même, l'équivalent de tests unitaires pour les relecteurs.
 
@@ -56,6 +56,7 @@ sequenceDiagram
   actor M as Porteur métier
   participant R as Raton
   actor E as Équipe infra
+  actor C as Change manager
   actor S as RSSI
 
   Note over M: Application produite avec une IA
@@ -76,15 +77,17 @@ sequenceDiagram
   Note over R: Contrôles déterministes (5 à 8, SAST)<br/>Revue aveugle et informée, juge (9)<br/>Analyse dynamique (10)
   R-->>E: Rapports et divergences entre passes
   E->>R: Tranche les divergences
-  R-->>E: Synthèse (12) : projet d'avis, périmètre vérifié et non vérifié
+  R-->>E: Synthèse (12) : projet d'avis et note,<br/>périmètre vérifié et non vérifié
   alt Constats à corriger
-    E-->>M: Constats à corriger
+    E-->>M: Constats à corriger, note et points à gagner
     M->>E: Nouvelle version, nouveau SHA
     E->>R: Revue différentielle (11)
-    R-->>E: Projet d'avis sur le nouveau SHA
+    R-->>E: Projet d'avis et note sur le nouveau SHA
   end
-  E->>S: Avis argumenté
-  S-->>E: Signe : Go, Go avec réserves ou No-Go
+  E->>C: Avis argumenté
+  C-->>E: Signe la mise en production :<br/>Go, Go avec réserves ou No-Go
+  Note over S: Accès à tout le dossier,<br/>à chaque étape, sans signer
+  E-->>M: Avis signé et note
   E->>E: Déploie l'application
   Note over E: Politiques réseau générées<br/>depuis la matrice de flux :<br/>tout flux non déclaré est bloqué.<br/>Comptes de service limités<br/>aux interconnexions de la fiche.
 ```
@@ -93,9 +96,11 @@ Trois moments humains structurent le parcours :
 
 - **le métier atteste son intention** (étape 6) : c'est la référence de toute la revue ;
 - **l'équipe infra tranche** les divergences entre passes et entre relecteurs (étape 13) ;
-- **le RSSI engage l'entreprise** en signant l'avis sur un commit précis (étape 20).
+- **le change manager autorise la mise en production** en signant l'avis sur un commit précis (étape 20).
 
-Toute nouvelle version repasse par la revue différentielle et donne un nouvel avis.
+Le RSSI ne signe pas, pour l'instant, mais il a accès à tout le dossier de l'application : fiche de qualification, DAT, matrice de flux, rapports, avis et note (voir [Rôles](#rôles)).
+
+Toute nouvelle version repasse par la revue différentielle et donne un nouvel avis et une nouvelle note : le métier voit sa note monter à mesure qu'il corrige les constats (voir le [format de la note](formats/note.md)).
 
 ## 3. Skills et données
 
@@ -180,9 +185,12 @@ flowchart LR
   RAP[/"Rapports de contrôle<br/>constats + périmètre"/]
   SYN["12 · Synthèse et avis"]
   AVIS[/"Avis sur le SHA<br/>Go · réserves · No-Go"/]
+  NOTE[/"Note de l'application<br/>A à E, points à gagner"/]
   DIFF["11 · Revue différentielle"]
   E(("Équipe<br/>infra"))
+  C(("Change<br/>manager"))
   S(("RSSI"))
+  M(("Porteur<br/>métier"))
 
   QF -.->|"choisit les contrôles"| CTRL
   CODE --> CTRL
@@ -195,7 +203,11 @@ flowchart LR
   RAP --> SYN
   E -->|"tranche"| SYN
   SYN --> AVIS
-  S -->|"signe"| AVIS
+  RAP --> NOTE
+  QF -.->|"contrôles attendus"| NOTE
+  C -->|"signe"| AVIS
+  S -.->|"accès au dossier"| AVIS
+  NOTE -.->|"motive"| M
   AVIS -->|"version suivante"| DIFF
   DIFF -->|"rapports sur le delta"| RAP
 
@@ -203,9 +215,9 @@ flowchart LR
   classDef fait fill:#d3f9d8,stroke:#2b8a3e,color:#000
   classDef propose fill:#fff3bf,stroke:#e67700,color:#000
   classDef afaire fill:#f8f9fa,stroke:#868e96,color:#000,stroke-dasharray:4 3
-  class E,S humain
+  class E,C,S,M humain
   class QF,RAP fait
-  class DET propose
+  class DET,NOTE propose
   class AG,DYN,SBOM,SYN,AVIS,DIFF afaire
 ```
 
@@ -264,7 +276,7 @@ flowchart LR
 | 9 | Revue par agents | agents ; l'équipe infra tranche | code ; dossier pour l'informé et le juge | reconstruction, rapports | à faire |
 | 10 | Analyse dynamique | outils, en bac à sable | application déployée, `flux.yaml` | rapport des flux observés | à faire |
 | 11 | Revue différentielle | agents ; équipe infra | avis précédent, delta entre commits | rapports, nouvel avis | à faire |
-| 12 | Synthèse et avis | agent ; équipe infra ; RSSI (signe) | rapports, qualification | avis Go, Go avec réserves ou No-Go | à faire |
+| 12 | Synthèse et avis | agent ; équipe infra ; change manager (signe) ; RSSI (accès) | rapports, qualification | avis Go, Go avec réserves ou No-Go ; note de l'application (`note.py`, proposée) | à faire |
 | 13 | Pré-contrôle | métier, seul | dossier, qualification | liste des manques | à faire |
 
 Composants transverses :
@@ -280,17 +292,22 @@ Composants transverses :
 | Script `flux.py` : validation, écarts, génération des politiques réseau | en place |
 | Image d'outillage et pipeline GitLab : deux runners dédiés, préparation puis analyse (gitleaks, Trivy ; osv-scanner, Opengrep à venir) | proposé |
 | Script `controles.py` et format du manifeste d'exécution | proposé |
+| Ressources et cycle de vie des données dans la partie technique du DAT | proposé |
+| Notation de l'application : règle publique, script `note.py` | proposé |
 | Corpus de test | un cas : `notes-de-frais` |
 
 ## Rôles
 
-Rôles retenus le 2026-11-10, comme hypothèse de travail en attendant une décision formelle :
+Rôles retenus le 2026-11-10, comme hypothèse de travail en attendant une décision formelle ; signataire revu le 2026-11-17 :
 
 | Rôle | Qui | Ce qu'il fait |
 |---|---|---|
 | Porteur métier | la personne ou l'équipe métier qui a produit l'application, souvent l'auteur du code | répond à la qualification, rédige et atteste l'intention, constitue le dossier, corrige les constats |
-| Équipe de revue et exploitation | **l'équipe infra** | valide la qualification (reçue par demande de fusion ou par ticket), en précisant les droits et la sensibilité des interconnexions, et range la fiche dans son dépôt ; lance le pipeline, tranche les divergences entre relecteurs, présente l'avis au RSSI ; puis déploie l'application, applique les politiques réseau qu'il génère depuis la matrice de flux et le fichier de plateforme qu'il tient, et ne crée que les comptes de service prévus par les interconnexions de la fiche |
-| Signataire | **le RSSI** | signe l'avis (Go, Go avec réserves, No-Go) sur un commit précis |
+| Équipe de revue et exploitation | **l'équipe infra** | valide la qualification (reçue par demande de fusion ou par ticket), en précisant les droits et la sensibilité des interconnexions, et range la fiche dans son dépôt ; lance le pipeline, tranche les divergences entre relecteurs, présente l'avis au change manager ; puis déploie l'application, applique les politiques réseau qu'il génère depuis la matrice de flux et le fichier de plateforme qu'il tient, et ne crée que les comptes de service prévus par les interconnexions de la fiche |
+| Signataire | **le change manager**, pour l'instant | signe l'avis (Go, Go avec réserves, No-Go) sur un commit précis : c'est l'autorisation de mise en production |
+| Sécurité | **le RSSI** | a accès à tout le dossier de chaque application : fiche de qualification, DAT, matrice de flux, rapports, avis et note ; ne signe pas |
 | Mainteneurs de Raton | l'équipe qui développe la bibliothèque | construisent les cas du corpus, écrivent leurs corrigés, mesurent Raton |
 
 La qualification est validée par l'équipe infra et pas seulement par le métier : l'auteur a intérêt à sous-évaluer la sensibilité de son application pour alléger les contrôles. Pour la même raison, la fiche validée vit dans un dépôt de l'équipe infra et non dans celui de l'application, et le palier se calcule par une règle publique au lieu de se négocier (voir le [format de la qualification](formats/qualification.md)).
+
+Le dossier d'une application est réparti entre deux dépôts : le `.raton/` (DAT, matrice de flux) vit dans le dépôt de l'application, la fiche de qualification et, à terme, les rapports, les avis et les notes dans le dépôt de l'équipe infra. L'accès du RSSI suppose donc un droit de lecture sur les deux. Il lui permet de suivre une application avant même la signature, par exemple dès la validation de la qualification.

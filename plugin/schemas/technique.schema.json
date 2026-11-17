@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:raton:schema:technique:v0",
   "title": "DAT, partie technique",
-  "description": "L'application telle qu'elle est construite, à un commit donné. Les références P, F, D et E renvoient à la partie intention ; le relecteur aveugle les omet.",
+  "description": "L'application telle qu'elle est construite, à un commit donné. Les références P, F, D et E renvoient à la partie intention ; le relecteur aveugle les omet. Les ressources, les capacités et le cycle de vie des données sont des déclarations de l'auteur : facultatifs pour le schéma, pour que le relecteur aveugle puisse les omettre, ils sont exigés par dossier.py dans le dossier de l'auteur.",
   "type": "object",
   "additionalProperties": false,
   "required": ["format", "source", "composants", "stockages", "services_tiers", "authentification", "configuration"],
@@ -38,7 +38,8 @@
             "enum": ["externe", "interne", "aucune"],
             "description": "D'où le composant est joignable. externe : depuis un réseau que l'entreprise ne maîtrise pas (Internet, réseau d'un partenaire, extranet), comme l'exposition de la fiche de qualification ; interne : depuis le réseau de l'entreprise seulement ; aucune : par aucun utilisateur (worker, tâche planifiée)."
           },
-          "fonctions": { "$ref": "#/$defs/refs_fonctions" }
+          "fonctions": { "$ref": "#/$defs/refs_fonctions" },
+          "ressources": { "$ref": "#/$defs/ressources" }
         }
       }
     },
@@ -54,7 +55,18 @@
           "nom": { "$ref": "#/$defs/nom_cluster", "description": "Obligatoire pour un stockage déployé dans le namespace de l'application : c'est l'étiquette de ses pods." },
           "type": { "enum": ["base_relationnelle", "base_documents", "cache", "stockage_objet", "fichiers", "file_messages", "autre"] },
           "technologie": { "$ref": "#/$defs/texte_court" },
-          "donnees": { "$ref": "#/$defs/refs_donnees" }
+          "donnees": { "$ref": "#/$defs/refs_donnees" },
+          "capacite": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["initiale", "par_an"],
+            "description": "Volume de stockage requis, ordre de grandeur.",
+            "properties": {
+              "initiale": { "$ref": "#/$defs/quantite_octets", "description": "Volume occupé à la mise en production, marge comprise." },
+              "par_an": { "$ref": "#/$defs/quantite_octets", "description": "Croissance estimée sur un an ; 0Gi pour un cache ou un stockage qui ne grossit pas." }
+            }
+          },
+          "ressources": { "$ref": "#/$defs/ressources", "description": "Pour un stockage déployé dans le namespace de l'application (il a un nom) : processeur et mémoire de ses pods." }
         }
       }
     },
@@ -106,6 +118,42 @@
       }
     },
 
+    "cycle_de_vie": {
+      "type": "array",
+      "description": "Ce que devient chaque donnée conservée par l'application : combien de temps elle est gardée, ce qui se passe ensuite, et ce qui le fait. La collecte et l'usage sont décrits par les fonctions de l'intention, les lieux de conservation par les stockages, les transmissions par les services tiers.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["donnee", "fin"],
+        "properties": {
+          "donnee": { "type": "string", "pattern": "^D[0-9]{2}$" },
+          "duree": { "$ref": "#/$defs/texte_court", "description": "Durée de conservation appliquée et son point de départ, par exemple « 10 ans après l'export »." },
+          "fin": {
+            "enum": ["suppression", "anonymisation", "archivage", "aucune"],
+            "description": "Ce que devient la donnée au terme de la durée. aucune : elle est conservée sans limite."
+          },
+          "mecanisme": {
+            "enum": ["composant", "regle_stockage", "manuel"],
+            "description": "Ce qui applique la fin. composant : le code de l'application, par le composant cité (tâche planifiée, worker) ; regle_stockage : l'expiration native du stockage (règle de cycle de vie d'un stockage objet, durée de vie d'un cache) ; manuel : une procédure humaine, à décrire dans le dossier d'exploitation."
+          },
+          "composant": { "type": "string", "pattern": "^C[0-9]{2}$" },
+          "precision": { "$ref": "#/$defs/texte_court" }
+        },
+        "allOf": [
+          {
+            "if": { "properties": { "fin": { "const": "aucune" } } },
+            "then": { "properties": { "duree": false, "mecanisme": false, "composant": false } },
+            "else": { "required": ["duree", "mecanisme"] }
+          },
+          {
+            "if": { "required": ["mecanisme"], "properties": { "mecanisme": { "const": "composant" } } },
+            "then": { "required": ["composant"] },
+            "else": { "properties": { "composant": false } }
+          }
+        ]
+      }
+    },
+
     "configuration": {
       "type": "object",
       "additionalProperties": false,
@@ -146,6 +194,29 @@
       "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9.+_-]*$" }
     },
     "nom_variable": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+    "quantite_cpu": {
+      "type": "string",
+      "pattern": "^(?:[1-9][0-9]{0,5}m|(?:0|[1-9][0-9]{0,2})(?:\\.[0-9]{1,3})?)$",
+      "description": "Processeur, en unités Kubernetes : 250m (millièmes de cœur) ou 0.5, 1, 2."
+    },
+    "quantite_octets": {
+      "type": "string",
+      "pattern": "^(?:0|[1-9][0-9]{0,6})(?:Mi|Gi|Ti)$",
+      "description": "Mémoire ou stockage, en unités binaires Kubernetes : 512Mi, 2Gi, 1Ti. Les suffixes décimaux sont refusés : en Kubernetes, 512m vaut 0,512 octet."
+    },
+    "ressources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["instances", "cpu", "memoire"],
+      "description": "Ce qu'il faut pour faire tourner le composant. Repris par les requests et limits de ses pods, que le palier Kubernetes vérifie.",
+      "properties": {
+        "instances": { "type": "integer", "minimum": 1, "maximum": 100, "description": "Nombre de pods en fonctionnement normal ; pour une tâche planifiée, pods lancés à chaque exécution." },
+        "cpu": { "$ref": "#/$defs/quantite_cpu", "description": "Processeur d'une instance en fonctionnement normal : requests.cpu." },
+        "memoire": { "$ref": "#/$defs/quantite_octets", "description": "Mémoire d'une instance en fonctionnement normal : requests.memory." },
+        "cpu_max": { "$ref": "#/$defs/quantite_cpu", "description": "Plafond d'une instance : limits.cpu. Sans plafond déclaré, il vaut cpu." },
+        "memoire_max": { "$ref": "#/$defs/quantite_octets", "description": "Plafond d'une instance : limits.memory. Sans plafond déclaré, il vaut memoire." }
+      }
+    },
     "refs_fonctions": {
       "type": "array",
       "uniqueItems": true,

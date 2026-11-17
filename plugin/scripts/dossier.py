@@ -7,7 +7,8 @@
 
   dossier.py valider CHEMIN     valide un fichier du dossier, ou le répertoire .raton entier
                                 (intention, technique et matrice de flux, références croisées comprises)
-  dossier.py rendre FICHIER     rend intention.yaml en Markdown lisible, pour validation humaine
+  dossier.py rendre FICHIER     rend intention.yaml en Markdown lisible, pour validation humaine ;
+                                rend aussi technique.yaml : ressources, capacités, cycle de vie des données
   dossier.py ecarts REPERTOIRE  compare intention.yaml et technique.yaml par références
 
 Les fichiers lus viennent de l'auteur : ce sont des données non fiables. Le script ne fait
@@ -72,7 +73,35 @@ def coherence_intention(doc):
     return erreurs, avert
 
 
+def millicoeurs(quantite):
+    """Quantité de processeur Kubernetes (250m, 0.5, 2) en millièmes de cœur."""
+    if quantite.endswith("m"):
+        return int(quantite[:-1])
+    entier, _, decimales = quantite.partition(".")
+    return int(entier) * 1000 + int((decimales + "000")[:3])
+
+
+_MIO = {"Mi": 1, "Gi": 1024, "Ti": 1024 * 1024}
+
+
+def mio(quantite):
+    """Quantité de mémoire ou de stockage Kubernetes (512Mi, 2Gi, 1Ti) en Mio."""
+    return int(quantite[:-2]) * _MIO[quantite[-2:]]
+
+
+def _coherence_ressources(qui, r, erreurs):
+    if millicoeurs(r["cpu"]) == 0 or mio(r["memoire"]) == 0:
+        erreurs.append(f"{qui} : processeur et mémoire ne peuvent pas être nuls")
+    if "cpu_max" in r and millicoeurs(r["cpu_max"]) < millicoeurs(r["cpu"]):
+        erreurs.append(f"{qui} : cpu_max {r['cpu_max']} inférieur à cpu {r['cpu']}")
+    if "memoire_max" in r and mio(r["memoire_max"]) < mio(r["memoire"]):
+        erreurs.append(f"{qui} : memoire_max {r['memoire_max']} inférieure à memoire {r['memoire']}")
+
+
 def coherence_technique(doc, intention=None):
+    """Sans l'intention, le document peut venir du relecteur aveugle : seules comptent ses
+    règles internes. Avec l'intention, c'est le dossier de l'auteur : ses références sont
+    vérifiées, et ses déclarations propres (ressources, capacités, cycle de vie) exigées."""
     erreurs = []
     for section in ("composants", "stockages", "services_tiers"):
         erreurs += doublons(section, doc.get(section))
@@ -81,6 +110,20 @@ def coherence_technique(doc, intention=None):
         if "nom" in e and e["nom"] in vus:
             erreurs.append(f"{e['id']} : nom « {e['nom']} » déjà porté par {vus[e['nom']]} ; il étiquette les pods, il doit être unique")
         vus.setdefault(e.get("nom"), e["id"])
+    for e in doc["composants"] + doc["stockages"]:
+        if "ressources" in e:
+            _coherence_ressources(e["id"], e["ressources"], erreurs)
+    for s in doc["stockages"]:
+        if "ressources" in s and "nom" not in s:
+            erreurs.append(f"{s['id']} : des ressources sans nom ; elles ne concernent qu'un stockage déployé dans le namespace de l'application")
+    cycle = doc.get("cycle_de_vie", [])
+    vues = set()
+    composants = set(_ids(doc["composants"]))
+    for c in cycle:
+        if c["donnee"] in vues:
+            erreurs.append(f"cycle_de_vie : donnée {c['donnee']} décrite deux fois")
+        vues.add(c["donnee"])
+        _refs(f"cycle de vie de {c['donnee']}", [c["composant"]] if "composant" in c else [], composants, erreurs)
     if intention is None:
         return erreurs, []
     fonctions = set(_ids(intention["fonctions"]))
@@ -96,7 +139,29 @@ def coherence_technique(doc, intention=None):
         _refs(f"service {t['id']}", t.get("echanges"), echanges, erreurs)
     for r in doc["authentification"].get("roles", []):
         _refs(f"rôle {r['role']}", r.get("profils"), profils, erreurs)
+    _refs("cycle_de_vie", [c["donnee"] for c in cycle], donnees, erreurs)
+    erreurs += manques_auteur(doc)
     return erreurs, []
+
+
+def manques_auteur(doc):
+    """Déclarations que seul l'auteur peut faire, et que son dossier doit porter."""
+    manques = []
+    for c in doc["composants"]:
+        if "ressources" not in c:
+            manques.append(f"composant {c['id']} : ressources non déclarées (instances, cpu, memoire)")
+    for s in doc["stockages"]:
+        if "capacite" not in s:
+            manques.append(f"stockage {s['id']} : capacité non déclarée (initiale, par_an)")
+        if "nom" in s and "ressources" not in s:
+            manques.append(f"stockage {s['id']} : déployé dans le namespace, ressources non déclarées")
+    conservees = {d for s in doc["stockages"] for d in s.get("donnees", [])}
+    decrites = {c["donnee"] for c in doc.get("cycle_de_vie", [])}
+    for d in sorted(conservees - decrites):
+        manques.append(f"cycle_de_vie : donnée {d} conservée dans un stockage, cycle de vie non décrit")
+    for d in sorted(decrites - conservees):
+        manques.append(f"cycle_de_vie : donnée {d} conservée par aucun stockage ; ajouter le stockage ou retirer l'entrée")
+    return manques
 
 
 def valider_document(doc, intention=None, technique=None):
@@ -258,6 +323,169 @@ def rendre_intention(doc):
     return "\n".join(lignes) + "\n"
 
 
+def _cpu(m):
+    return str(m // 1000) if m % 1000 == 0 else f"{m}m"
+
+
+def _octets(n):
+    """Mio en texte lisible : 512Mi, 2Gi, 25.1Gi."""
+    for suffixe, facteur in (("Ti", 1024 * 1024), ("Gi", 1024)):
+        if n >= facteur:
+            return f"{n / facteur:.1f}".removesuffix(".0") + suffixe
+    return f"{n}Mi" if n else "0"
+
+
+def _valeur_et_plafond(valeur, plafond):
+    return valeur if plafond in (None, valeur) else f"{valeur} (max {plafond})"
+
+
+_FIN = {
+    "suppression": "suppression",
+    "anonymisation": "anonymisation",
+    "archivage": "archivage",
+    "aucune": "aucune",
+}
+
+
+def rendre_technique(doc, intention=None):
+    """Rendu lisible de la partie technique, pour l'équipe infra, le change manager et le
+    RSSI. Les libellés de l'intention, si elle est fournie, nomment les références."""
+    lib = {}
+    if intention:
+        lib = {e["id"]: e.get("libelle") or e.get("partenaire") for s in ("profils", "donnees", "fonctions", "echanges") for e in intention[s]}
+    noms_c = {c["id"]: c["nom"] for c in doc["composants"]}
+
+    def noms(ids):
+        return ", ".join(f"{_cell(lib[i])} ({i})" if i in lib else i for i in ids) or "—"
+
+    src = doc["source"]
+    titre = f"{_cell(intention['application']['nom'])} — partie technique" if intention else "Partie technique"
+    lignes = [
+        f"# {titre}",
+        "",
+        f"Commit `{src['commit']}` du dépôt {_cell(src['depot'])}.",
+        f"Langages : {', '.join(src['langages'])}" + (f" ; frameworks : {', '.join(src['frameworks'])}." if src.get("frameworks") else "."),
+        "",
+        "## Composants",
+        "",
+        "| Composant | Rôle | Exposition | Instances | Processeur | Mémoire | Fonctions |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    total_cpu = total_cpu_max = total_mem = total_mem_max = 0
+    total_initial = total_an = 0
+    incomplet = False
+
+    def ressources(r):
+        nonlocal total_cpu, total_cpu_max, total_mem, total_mem_max, incomplet
+        if r is None:
+            incomplet = True
+            return ["non déclaré"] * 3
+        n = r["instances"]
+        total_cpu += n * millicoeurs(r["cpu"])
+        total_cpu_max += n * millicoeurs(r.get("cpu_max", r["cpu"]))
+        total_mem += n * mio(r["memoire"])
+        total_mem_max += n * mio(r.get("memoire_max", r["memoire"]))
+        return [str(n), _valeur_et_plafond(r["cpu"], r.get("cpu_max")), _valeur_et_plafond(r["memoire"], r.get("memoire_max"))]
+
+    for c in doc["composants"]:
+        cols = ressources(c.get("ressources"))
+        lignes.append(
+            f"| {c['nom']} ({c['id']}) : {_cell(c['libelle'])} | {c['role']} | {c['expose']} | "
+            + " | ".join(cols) + f" | {noms(c.get('fonctions', []))} |"
+        )
+    lignes += [
+        "",
+        "## Stockages",
+        "",
+        "| Stockage | Type | Technologie | Données | Capacité initiale | Croissance par an | Pods dans le namespace |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for s in doc["stockages"]:
+        cap = s.get("capacite")
+        if cap:
+            total_initial += mio(cap["initiale"])
+            total_an += mio(cap["par_an"])
+        else:
+            incomplet = True
+        pods = "non, géré hors du cluster"
+        if "nom" in s:
+            pods = "{} : {} instance(s), processeur {}, mémoire {}".format(s["nom"], *ressources(s.get("ressources")))
+        lignes.append(
+            f"| {s['id']} | {s['type'].replace('_', ' ')} | {_cell(s['technologie'])} | {noms(s.get('donnees', []))} | "
+            f"{cap['initiale'] if cap else 'non déclarée'} | {cap['par_an'] if cap else 'non déclarée'} | {pods} |"
+        )
+    lignes += [
+        "",
+        "## Ressources à prévoir",
+        "",
+        f"- Processeur : {_cpu(total_cpu)} demandés, {_cpu(total_cpu_max)} au plus",
+        f"- Mémoire : {_octets(total_mem)} demandés, {_octets(total_mem_max)} au plus",
+        f"- Stockage : {_octets(total_initial)} à la mise en production, puis {_octets(total_an)} de plus par an",
+    ]
+    if incomplet:
+        lignes += ["", "> **Incomplet** : des ressources ou des capacités ne sont pas déclarées ; ces totaux ne les comptent pas."]
+
+    lignes += ["", "## Cycle de vie des données", ""]
+    origine = {d["id"]: d for d in intention["donnees"]} if intention else {}
+    lieux = {}
+    for s in doc["stockages"]:
+        for d in s.get("donnees", []):
+            lieux.setdefault(d, []).append(f"{s['id']} ({_cell(s['technologie'])})")
+    tiers = {}
+    for t in doc["services_tiers"]:
+        for d in t.get("donnees_transmises", []):
+            tiers.setdefault(d, []).append(f"{t['id']} ({_cell(t['libelle'])})")
+    cycle = doc.get("cycle_de_vie", [])
+    if cycle:
+        lignes += [
+            "| Donnée | Origine | Conservée dans | Transmise à | Conservation prévue par l'intention | Conservation appliquée | Fin |",
+            "|---|---|---|---|---|---|---|",
+        ]
+        for c in cycle:
+            d = c["donnee"]
+            fin = _FIN[c["fin"]]
+            if c.get("mecanisme") == "composant":
+                fin += f", par le composant {noms_c.get(c['composant'], c['composant'])} ({c['composant']})"
+            elif c.get("mecanisme") == "regle_stockage":
+                fin += ", par une règle du stockage"
+            elif c.get("mecanisme") == "manuel":
+                fin += ", à la main (dossier d'exploitation)"
+            if c.get("precision"):
+                fin += f" ; {_cell(c['precision'])}"
+            lignes.append(
+                f"| {noms([d])} | {_cell(origine[d]['origine']) if d in origine else '—'} | {', '.join(lieux.get(d, [])) or '—'} | "
+                f"{', '.join(tiers.get(d, [])) or '—'} | {_cell(origine[d]['conservation']) if d in origine else '—'} | "
+                f"{_cell(c.get('duree', 'sans limite'))} | {fin} |"
+            )
+    else:
+        lignes.append("Non décrit.")
+    non_conservees = [d for d in origine if d not in lieux]
+    if non_conservees:
+        lignes += ["", f"Données de l'intention qu'aucun stockage ne conserve : {noms(non_conservees)}."]
+
+    lignes += ["", "## Services tiers", ""]
+    if doc["services_tiers"]:
+        lignes += ["| Service | Usage | Données transmises | Échanges |", "|---|---|---|---|"]
+        for t in doc["services_tiers"]:
+            echanges = noms(t["echanges"]) if t.get("echanges") else ("**aucun échange déclaré**" if "echanges" in t else "—")
+            lignes.append(f"| {_cell(t['libelle'])} ({t['id']}) | {_cell(t['usage'])} | {noms(t.get('donnees_transmises', []))} | {echanges} |")
+    else:
+        lignes.append("Aucun.")
+    auth = doc["authentification"]
+    lignes += ["", "## Authentification", "", f"Mécanisme : {auth['mecanisme']}" + (f" ({auth['protocole']})." if auth.get("protocole") else ".")]
+    for r in auth.get("roles", []):
+        lignes.append(f"- rôle « {_cell(r['role'])} » : {noms(r.get('profils', [])) if r.get('profils') else '**aucun profil**'}")
+    conf = doc["configuration"]
+    lignes += [
+        "",
+        "## Configuration",
+        "",
+        f"Variables : {', '.join(conf['variables']) or '—'}.",
+        "Secrets (noms seulement) : " + (", ".join(f"{s['nom']} ({s['provenance'].replace('_', ' ')})" for s in conf["secrets"]) or "—") + ".",
+    ]
+    return "\n".join(lignes) + "\n"
+
+
 # --- Ligne de commande -------------------------------------------------------
 
 
@@ -285,7 +513,14 @@ def _charger_valide(chemin, format_, intention=None):
 
 
 def _cmd_rendre(args):
-    sys.stdout.write(rendre_intention(_charger_valide(Path(args.fichier), "raton/intention/v0")))
+    chemin = Path(args.fichier)
+    doc = charger(chemin)
+    if isinstance(doc, dict) and doc.get("format") == "raton/technique/v0":
+        voisine = chemin.parent / "intention.yaml"
+        intention = _charger_valide(voisine, "raton/intention/v0") if voisine.exists() else None
+        sys.stdout.write(rendre_technique(_charger_valide(chemin, "raton/technique/v0", intention), intention))
+    else:
+        sys.stdout.write(rendre_intention(_charger_valide(chemin, "raton/intention/v0")))
     return 0
 
 
@@ -306,7 +541,7 @@ def main(argv=None):
     p = sous.add_parser("valider", help="valider un fichier ou un répertoire .raton")
     p.add_argument("chemin")
     p.set_defaults(func=_cmd_valider)
-    p = sous.add_parser("rendre", help="rendre intention.yaml en Markdown")
+    p = sous.add_parser("rendre", help="rendre intention.yaml ou technique.yaml en Markdown")
     p.add_argument("fichier")
     p.set_defaults(func=_cmd_rendre)
     p = sous.add_parser("ecarts", help="écarts entre intention et technique")

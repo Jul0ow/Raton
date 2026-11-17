@@ -29,3 +29,5 @@ Le SDK Sentry ne figure pas non plus parmi les interconnexions de la fiche : le 
 ## Hors du périmètre de ce cas
 
 L'application n'a ni Dockerfile ni manifestes Kubernetes, et ses dépendances ne sont épinglées que par version, sans lockfile. Les constats du palier Kubernetes et de la chaîne d'approvisionnement ne font pas partie des constats attendus de ce cas.
+
+Rien dans le code ne supprime les notes et les justificatifs, que l'intention prévoit de conserver 10 ans. La partie technique le déclare honnêtement dans son cycle de vie (`fin: aucune`) : l'écart est visible dans le dossier lui-même, sans lire le code. Il ne fait pas non plus partie des constats attendus, qui restent centrés sur le SDK.

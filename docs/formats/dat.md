@@ -1,6 +1,6 @@
 # Format du DAT
 
-Statut : **validé** le 2026-11-08 (format v0). Complété le 2026-11-12 : les échanges renvoient aux interconnexions de la qualification. Complété le 2026-11-13, avec la matrice de flux : exposition `externe` des composants, nom des composants dans le cluster.
+Statut : **validé** le 2026-11-08 (format v0). Complété le 2026-11-12 : les échanges renvoient aux interconnexions de la qualification. Complété le 2026-11-13, avec la matrice de flux : exposition `externe` des composants, nom des composants dans le cluster. Complément **proposé** le 2026-11-17, à la demande de l'équipe, à valider : [ressources et capacités](#ressources-et-capacités) requises, [cycle de vie des données](#cycle-de-vie-des-données).
 
 Le DAT (dossier d'architecture technique) décrit une application soumise à la revue. Il a deux rôles :
 
@@ -35,7 +35,7 @@ Chaque fichier est en YAML et validé par un schéma JSON. Le métier n'a pas à
 Ce qui ne figure pas dans le DAT :
 
 - la criticité, la sensibilité DICP et l'exposition, qui viennent de la fiche de qualification (skill 1) ;
-- les manifestes, l'image, les probes et les ressources, que le palier Kubernetes (skill 5) lit directement dans le dépôt ;
+- les manifestes, l'image et les probes, que le palier Kubernetes (skill 5) lit directement dans le dépôt. Les ressources, elles, sont déclarées dans la partie technique, et le palier Kubernetes les confronte aux manifestes ;
 - les logs, la sauvegarde et le responsable de la maintenance, qui relèvent du dossier d'exploitation (skill 4).
 
 ## Partie intention
@@ -155,6 +155,9 @@ Elle décrit l'application telle qu'elle est construite, au commit indiqué. Ell
 | `source` | dépôt, commit (SHA complet), langages, frameworks |
 | `composants` | unités déployées : nom dans le cluster, rôle (`web`, `api`, `worker`, `tache_planifiee`), technologie, exposition, fonctions réalisées |
 | `stockages` | bases, fichiers, caches : type (liste fermée), technologie, données stockées ; nom dans le cluster s'il est déployé avec l'application |
+| `composants[].ressources`, `stockages[].ressources` | processeur et mémoire requis : nombre d'instances, demande et plafond d'une instance ; pour un stockage, seulement s'il est déployé dans le namespace de l'application |
+| `stockages[].capacite` | volume de stockage requis : à la mise en production, puis par an |
+| `cycle_de_vie` | pour chaque donnée conservée : durée de conservation appliquée, ce qu'elle devient ensuite, ce qui l'applique |
 | `services_tiers` | tout ce que le code appelle hors de l'application, systèmes de l'entreprise compris, sauf les stockages et le SSO. **Y compris télémétrie, analytics et remontée d'erreurs.** Pour chacun : données transmises, échanges réalisés |
 | `authentification` | mécanisme (`sso_entreprise`, `maison`, `aucune`), protocole, correspondance entre rôles techniques et profils |
 | `configuration` | variables attendues, secrets attendus (noms seulement, jamais de valeur) et leur provenance |
@@ -171,11 +174,18 @@ source:
   frameworks: [fastapi, sqlalchemy]
 
 composants:
-  - { id: C01, nom: api, libelle: API notes de frais, role: api, technologie: python / fastapi, expose: interne, fonctions: [F01, F02, F03, F04] }
+  - id: C01
+    nom: api
+    libelle: API notes de frais
+    role: api
+    technologie: python / fastapi
+    expose: interne
+    fonctions: [F01, F02, F03, F04]
+    ressources: { instances: 2, cpu: 250m, cpu_max: "1", memoire: 256Mi, memoire_max: 512Mi }
 
 stockages:
-  - { id: S01, type: base_relationnelle, technologie: postgresql, donnees: [D01] }
-  - { id: S02, type: stockage_objet, technologie: s3, donnees: [D02] }
+  - { id: S01, type: base_relationnelle, technologie: postgresql, donnees: [D01], capacite: { initiale: 1Gi, par_an: 100Mi } }
+  - { id: S02, type: stockage_objet, technologie: s3, donnees: [D02], capacite: { initiale: 1Gi, par_an: 25Gi } }
 
 services_tiers:
   - { id: T01, libelle: Annuaire de l'entreprise, usage: liste des salariés d'un manager, echanges: [E01] }
@@ -195,6 +205,10 @@ authentification:
     - { role: manager, profils: [P02] }
     - { role: accounting, profils: [P03] }
 
+cycle_de_vie:
+  - { donnee: D01, fin: aucune, precision: rien dans le code ne supprime les notes de la base }
+  - { donnee: D02, fin: aucune, precision: rien dans le code ne supprime les justificatifs du stockage objet }
+
 configuration:
   variables: [OIDC_ISSUER, OIDC_AUDIENCE, AI_ENDPOINT, DIRECTORY_URL, COMPTA_URL, S3_ENDPOINT, S3_BUCKET]
   secrets:
@@ -208,6 +222,53 @@ configuration:
 
 Le service `T04` illustre le cas visé par le modèle de menace : un SDK ajouté par l'IA, que le métier ignore. Il ne renvoie à aucun échange de l'intention, ce qui en fait un constat même quand la partie technique est honnête. Dans le corpus, la partie technique soumise par l'auteur l'omet : c'est à la revue de le trouver dans le code.
 
+Le cycle de vie montre l'autre intérêt d'une description exacte : l'intention prévoit de conserver notes et justificatifs 10 ans, mais rien dans le code ne les supprime ensuite. Décrire le cycle de vie fait apparaître cet écart dès la rédaction du DAT, avant toute revue.
+
+### Ressources et capacités
+
+L'équipe infra dimensionne le namespace, les bases et les stockages de l'application avant de la déployer. La partie technique lui dit ce qu'il faut :
+
+- **par composant**, `ressources` : nombre d'`instances` en fonctionnement normal (pour une tâche planifiée, les pods lancés à chaque exécution) ; `cpu` et `memoire` d'une instance en fonctionnement normal ; `cpu_max` et `memoire_max`, son plafond. Sans plafond déclaré, le plafond vaut la demande ;
+- **par stockage**, `capacite` : volume `initiale`, à la mise en production, marge comprise, et croissance estimée `par_an` (`0Gi` pour un cache). Avec la durée de conservation du cycle de vie, elle dit jusqu'où le stockage grossira ;
+- **par stockage déployé dans le namespace** (il a un `nom`, comme une base PostgreSQL lancée avec l'application), aussi des `ressources`, puisque ses pods en consomment. Un stockage géré hors du cluster n'en a pas.
+
+Les quantités s'écrivent en unités Kubernetes : `250m` ou `0.5` pour le processeur, `512Mi`, `2Gi`, `1Ti` pour la mémoire et le stockage. Ce sont les valeurs que l'équipe infra reportera dans les manifestes, sans conversion. Les suffixes décimaux (`M`, `G`) sont refusés : en Kubernetes, `512m` vaut 0,512 octet, une erreur facile à commettre et difficile à voir.
+
+Ce sont des ordres de grandeur estimés par l'auteur, pas des mesures. Ils servent trois fois :
+
+- l'équipe infra dimensionne et réserve ;
+- le palier Kubernetes (skill 5) vérifie que les `requests` et `limits` des manifestes reprennent ces valeurs : `requests` pour la demande, `limits` pour le plafond ;
+- l'analyse dynamique (skill 10), en bac à sable, pourra comparer la consommation observée aux valeurs déclarées.
+
+`dossier.py rendre .raton/technique.yaml` additionne les besoins : processeur et mémoire demandés et au plus, stockage à la mise en production et par an.
+
+### Cycle de vie des données
+
+L'intention dit combien de temps le métier veut garder chaque donnée (`conservation`), dans ses mots. La partie technique dit ce que l'application en fait réellement, pour chaque donnée conservée dans un stockage :
+
+| Champ | Contenu |
+|---|---|
+| `donnee` | la donnée de l'intention (`D01`) |
+| `duree` | la durée appliquée et son point de départ, par exemple « 10 ans après l'export » |
+| `fin` | ce qu'elle devient ensuite : `suppression`, `anonymisation`, `archivage`, ou `aucune` si elle est conservée sans limite |
+| `mecanisme` | ce qui l'applique : `composant` (le code de l'application, par le composant cité dans `composant`, souvent une tâche planifiée), `regle_stockage` (l'expiration native du stockage : règle de cycle de vie d'un stockage objet, durée de vie d'un cache), `manuel` (une procédure humaine, que le dossier d'exploitation devra décrire) |
+| `precision` | facultatif : où va une donnée archivée, ce qui déclenche la fin, une limite connue |
+
+Le reste du cycle de vie est déjà dans le dossier, et le rendu le rassemble dans un seul tableau par donnée :
+
+- **collecte et usage** : l'origine de la donnée et les fonctions qui la lisent ou l'écrivent, dans l'intention ;
+- **conservation** : les stockages qui la contiennent, dans la partie technique ;
+- **transmission** : les services tiers qui la reçoivent, dans la partie technique, et les flux qui la transportent, dans la matrice de flux ;
+- **fin** : la nouvelle section.
+
+`duree` et `mecanisme` sont obligatoires sauf si `fin` vaut `aucune`, et `composant` l'est quand le mécanisme est un composant. Une donnée qu'aucun stockage ne conserve, comme le rattachement des salariés à leur manager, lu dans l'annuaire à chaque demande, n'a pas d'entrée : le rendu la liste à part.
+
+La conservation des sauvegardes relève du dossier d'exploitation (skill 4) : une donnée supprimée de la base reste dans les sauvegardes jusqu'à leur expiration.
+
+### Déclarations propres à l'auteur
+
+Ressources, capacités et cycle de vie sont facultatifs pour le schéma : le relecteur aveugle, qui produit une partie technique au même format, ne peut pas deviner le dimensionnement voulu par l'auteur. Dans le dossier de l'auteur, en revanche, ils sont obligatoires : `dossier.py valider .raton` les exige dès que la partie technique est validée avec l'intention. C'est le même principe que pour les renvois aux interconnexions, facultatifs pour le schéma et exigés par `qualification.py`.
+
 ## Traçabilité et comparaison
 
 Ce que le juge vérifie, par simple jeu de références. La commande `dossier.py ecarts` fait déjà les vérifications marquées ⚙ entre intention et technique déclarée.
@@ -219,7 +280,9 @@ Intention et technique (revue informée) :
 - ⚙ chaque service tiers renvoie à un échange `E`, sinon c'est un **flux non déclaré** ; à l'inverse, chaque échange est réalisé par un service ;
 - ⚙ chaque donnée transmise à un service est prévue par l'échange correspondant ;
 - ⚙ chaque rôle technique correspond à un profil `P`, et un rôle sans profil (un `admin` par exemple) est un constat ; chaque profil a un rôle ;
-- chaque exclusion `X` reçoit un verdict du relecteur informé : respectée, violée ou non vérifiable.
+- chaque exclusion `X` reçoit un verdict du relecteur informé : respectée, violée ou non vérifiable ;
+- ⚙ chaque composant déclare ses ressources, chaque stockage sa capacité, chaque stockage déployé dans le namespace ses ressources, et chaque donnée conservée dans un stockage son cycle de vie ; un cycle de vie ne décrit qu'une donnée conservée ;
+- chaque cycle de vie est confronté au code et à la conservation de l'intention : une suppression déclarée que le code ne fait pas est un **dossier inexact** ; une conservation prévue par l'intention que rien ne fait respecter, comme dans l'exemple, est un constat que le métier tranche, en faisant ajouter la suppression ou en faisant évoluer son intention.
 
 Intention et qualification (`qualification.py valider --intention`, voir les [recoupements](qualification.md#recoupements-avec-lintention)) :
 
@@ -233,9 +296,9 @@ Intention, technique et matrice de flux (`flux.py ecarts`, voir le [format de la
 
 Technique déclarée et reconstruction aveugle :
 
-- l'aveugle produit `technique.yaml` et `flux.yaml` sans identifiants `P`, `F`, `D`, `E` ni `I`, puisqu'il ne voit ni l'intention ni la fiche de qualification : ces références sont facultatives dans les schémas ;
+- l'aveugle produit `technique.yaml` et `flux.yaml` sans identifiants `P`, `F`, `D`, `E` ni `I`, puisqu'il ne voit ni l'intention ni la fiche de qualification : ces références sont facultatives dans les schémas. Il omet aussi ressources, capacités et cycle de vie, qui sont des déclarations de l'auteur ;
 - le juge apparie composants, stockages, services tiers et flux, et tout élément présent d'un seul côté est une divergence escaladée à un humain ;
-- pour détecter les fonctions non décrites, l'aveugle devra aussi décrire les fonctions et les données qu'il observe. Le format sera fixé avec le skill 9 ; la piste est de reprendre celui de l'intention, pour un diff direct.
+- pour détecter les fonctions non décrites, l'aveugle devra aussi décrire les fonctions et les données qu'il observe. Le format sera fixé avec le skill 9 ; la piste est de reprendre celui de l'intention, pour un diff direct. La même description dira quelles suppressions il trouve dans le code, pour confronter le cycle de vie déclaré.
 
 ## Proportionnalité
 
@@ -257,6 +320,18 @@ Complété le 2026-11-13, à la relecture de la matrice de flux :
 - l'exposition d'un composant vaut `externe`, et non plus `internet`, avec le sens qu'elle a dans la qualification : joignable depuis un réseau que l'entreprise ne maîtrise pas, Internet ou réseau d'un partenaire ;
 - chaque composant, et chaque stockage déployé avec l'application, a un `nom` court et lisible (`api`, `worker`, `postgres`), unique dans l'application. Ses pods le portent en étiquette et les politiques réseau le reprennent : l'équipe infra lit `api` dans le cluster plutôt que `C01`.
 
+Proposé le 2026-11-17, à la demande de l'équipe, à valider :
+
+- la partie technique documente les ressources requises : processeur et mémoire par composant (instances, demande, plafond), en unités Kubernetes, et volume par stockage (initial et par an) ;
+- elle décrit le cycle de vie de chaque donnée conservée : durée appliquée, fin, mécanisme ;
+- ces déclarations sont facultatives pour le schéma, pour le relecteur aveugle, et exigées par `dossier.py` dans le dossier de l'auteur ;
+- le palier Kubernetes vérifiera que les `requests` et `limits` des manifestes reprennent les ressources déclarées.
+
+Questions pour la validation :
+
+- faut-il déclarer aussi la conservation chez les services tiers (un fournisseur d'IA qui garde les justificatifs 30 jours, par exemple) ? Elle dépend du contrat plus que du code ; elle pourrait entrer dans `services_tiers` ;
+- l'équipe infra veut-elle un nombre d'instances minimal selon la disponibilité de la fiche de qualification, par exemple deux instances dès le niveau 3 ? Le palier Kubernetes pourrait le vérifier.
+
 Écarté pour l'instant : exiger un second valideur de l'intention quand l'auteur du code et le porteur métier sont la même personne.
 
 ## Outillage
@@ -266,7 +341,8 @@ Complété le 2026-11-13, à la relecture de la matrice de flux :
 ```bash
 python3 plugin/scripts/dossier.py valider <fichier ou répertoire .raton>
 python3 plugin/scripts/dossier.py rendre .raton/intention.yaml
+python3 plugin/scripts/dossier.py rendre .raton/technique.yaml   # ressources totales, cycle de vie
 python3 plugin/scripts/dossier.py ecarts .raton
 ```
 
-`valider` contrôle le schéma, l'unicité des identifiants et les références : internes à l'intention, de la technique vers l'intention, puis de la [matrice de flux](flux.md) vers les deux. Le chargeur YAML refuse les clés en double, que YAML écraserait sans rien dire : un même fichier pourrait sinon montrer une valeur à l'humain et en faire lire une autre à un outil.
+`valider` contrôle le schéma, l'unicité des identifiants et les références : internes à l'intention, de la technique vers l'intention, puis de la [matrice de flux](flux.md) vers les deux. Validée avec l'intention, la partie technique doit aussi porter les [déclarations propres à l'auteur](#déclarations-propres-à-lauteur). Le chargeur YAML refuse les clés en double, que YAML écraserait sans rien dire : un même fichier pourrait sinon montrer une valeur à l'humain et en faire lire une autre à un outil.
